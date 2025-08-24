@@ -37,7 +37,7 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
 
 
   return (
-    <Card className="relative overflow-hidden hover:shadow-lg transition group py-0 ml-4 mr-4 bg-gradient-to-br from-cyan-50 to-rose-100 hover:bg-gradient-to-bl hover:from-red-200 via-purple-200 to-green-200">
+    <Card className="relative overflow-hidden hover:shadow-lg transition group py-0 ml-4 mr-4 bg-gradient-to-br from-cyan-50 to-rose-100 hover:bg-gradient-to-b hover:from-red-200 via-purple-200 to-green-200">
       <div className="relative h-48">
         {car.images && car.images.length > 0 ? (
           <div>

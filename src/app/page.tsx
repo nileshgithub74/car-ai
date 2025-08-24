@@ -1,10 +1,10 @@
 import CarCard from "@/components/ui/car-card";
 import HomeSearch from "@/components/ui/home-search";
-import { featuredCars } from "@/lib/data";
+import { bodyTypes, featuredCars } from "@/lib/data";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Car, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { carMakes } from "@/lib/data";
 
@@ -31,8 +31,8 @@ const Home = () => {
           <HomeSearch />
         </div>
       </section>
- 
-     {/* featured cars */}
+
+      {/* featured cars */}
 
       <section className="py-12 bg-gray-200/50">
         <div className="container mx-auto px-4">
@@ -54,10 +54,9 @@ const Home = () => {
         </div>
       </section>
 
-
       {/* browse by makes */}
 
-      <section className="py-12 bg-gray-50">
+      <section className="py-12 bg-yellow-100/40">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold ">Browsed By Makes</h2>
@@ -81,15 +80,107 @@ const Home = () => {
                     src={make.image}
                     alt={make.name}
                     fill
-                    style={{objectFit:"contain"}}
+                    style={{ objectFit: "contain" }}
                   />
                 </div>
-            
               </Link>
             ))}
           </div>
         </div>
       </section>
+
+      {/* //why chose us */}
+      <section className="py-16 bg-teal-100/35">
+        <div className="container mx-auto px-4 ">
+          <h2 className="text-2xl text-center font-bold mb-12">
+            Why choose Our Platform
+          </h2>
+
+          {/* grid layout */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Card 1 */}
+            <div className="text-center">
+              <div className="bg-blue-100 text-blue-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Car className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Wide Selection</h3>
+              <p className="text-gray-600">
+                Thousands of verified vehicles from trusted dealerships and
+                private sellers.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="text-center">
+              <div className="bg-blue-100 text-blue-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Car className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">AI Powered Search</h3>
+              <p className="text-gray-600">
+                Quickly find cars with advanced AI search and filters.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="text-center">
+              <div className="bg-blue-100 text-blue-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Car className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Trusted Platform</h3>
+              <p className="text-gray-600">
+                Buy confidently with verified dealers and secure listings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* // browse by bodytype */}
+
+      
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold ">Browsed By Body Types</h2>
+            <Button variant="ghost" className="flext items-center " asChild>
+              <Link href="/cars">
+                View All
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {bodyTypes.map((type) => (
+              <Link
+                key={type.name}
+                href={`/cars?bodyType=${type.name}`}
+                className="relative group cursor-pointer"
+              >
+                <div className=" overflow-hidden rounded-lg flex justify-end h-28 mb-4 relative">
+                  <Image
+                    src={type.image}
+                    alt={type.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transiton duration-300"
+                  />
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex rounded-lg items-end">
+                  <h3 className="text-white text-md font-bold pl-4 pb-5 ">{type.name}</h3>
+                </div>
+
+
+
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+
+
     </div>
   );
 };
