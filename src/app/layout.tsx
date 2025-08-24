@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/ui/Header";
 import {ClerkProvider} from '@clerk/nextjs'
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,12 +28,16 @@ export default function RootLayout({
              <Header/>
        
           <main className="min-h-screen "> {children}</main>
+          <Toaster richColors/>
 
-          <footer className="bg-blue-200 py-10">
-            <div className="container mx-auto  px-4  text-center text-gray-600  ">
-              <p>Made with 💞By Nilesh</p>
-            </div>
-          </footer>
+        <footer className="bg-blue-200 py-6">
+  <div className="container mx-auto px-4 text-center text-gray-700">
+    <p>Made with 💞 by Nilesh</p>
+    <p className="mt-2 text-sm">&copy; {new Date().getFullYear()}Vehiql. All Rights Reserved.</p>
+  </div>
+</footer>
+
+          
         </body>
       </html>
   

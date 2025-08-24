@@ -1,12 +1,19 @@
 import CarCard from "@/components/ui/car-card";
 import HomeSearch from "@/components/ui/home-search";
-import { bodyTypes, featuredCars } from "@/lib/data";
+import { bodyTypes, faqItems, featuredCars } from "@/lib/data";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Car, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { carMakes } from "@/lib/data";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { SignedOut } from "@clerk/nextjs";
 
 const Home = () => {
   return (
@@ -137,7 +144,6 @@ const Home = () => {
 
       {/* // browse by bodytype */}
 
-      
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -167,20 +173,59 @@ const Home = () => {
                 </div>
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex rounded-lg items-end">
-                  <h3 className="text-white text-md font-bold pl-4 pb-5 ">{type.name}</h3>
+                  <h3 className="text-white text-md font-bold pl-4 pb-5 ">
+                    {type.name}
+                  </h3>
                 </div>
-
-
-
               </Link>
             ))}
           </div>
         </div>
       </section>
 
+      {/* // freqquenctly asked question/ */}
+      <section className="py-12 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center mb-8">
+            Frequently asked Question
+          </h2>
+
+          <Accordion type="single" collapsible>
+            {faqItems.map((faq, index) => {
+              return (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger>{faq.question}</AccordionTrigger>
+                  <AccordionContent>{faq.answer}</AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </div>
+      </section>
+
+      <section className="py-16 dotted-background text-white">
+        <div className="container mx-auto px-4 text-center ">
+          <h2 className="text-3xl font-bold mb-8 max-w-2xl mx-auto">
+            Ready to Find Your Dream Car?
+          </h2>
+             <p className="mb-6 max-w-md mx-auto">
+      Join thousands of satisfied customers who found their perfect
+      vehicle through our platform.
+    </p>
 
 
-
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/cars">View All Cars</Link>
+            </Button>
+            <SignedOut>
+              <Button size="lg" asChild>
+                <Link href="/sign-up">Sign Up Now</Link>
+              </Button>
+            </SignedOut>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
