@@ -12,14 +12,14 @@ const Header = ({ isAdminPage = false }) => {
   const isAdmin = false;
 
   return (
-    <header className="fixed top-0 bg-white/50 backdrop-blur-md z-50 border-b w-full">
+    <header className="fixed top-0 bg-rose-100/50 backdrop-blur-md z-50 border-b w-full ">
       <nav className="mx-auto px-4 py-4 flex items-center justify-between space-x-4 bg-gray-200/50 backdrop-blur-2xl shadow-xl">
         <Link href={isAdminPage ? "/admin" : "/"} className="flex">
           <Image
             src={Logo}
             alt="Logo"
-            width={200}
-            height={60}
+            width={100}
+            height={40}
             className="h-12 w-auto object-contain space-x-2"
           />
           {isAdminPage && (
