@@ -13,6 +13,7 @@ import {
 } from '../ui/form';
 import { Input } from '../ui/input';
 import AuthFormWrapper from './AuthForm';
+import { useRouter } from 'next/navigation';
 
 const SignInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email'),
@@ -20,21 +21,39 @@ const SignInSchema = z.object({
 });
 
 export default function SignInForm() {
+  const router = useRouter();
+
   const form = useForm<z.infer<typeof SignInSchema>>({
     resolver: zodResolver(SignInSchema),
     defaultValues: { email: '', password: '' },
   });
 
-  const onSubmit = form.handleSubmit((values) => console.log(values));
+  const onSubmit = async (values: z.infer<typeof SignInSchema>) => {
+    try {
+      const res = await fetch('/api/sign-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (res.ok) {
+        router.push('/'); 
+      } else {
+        console.error('Sign in failed');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4 overflow-x-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 overflow-x-hidden">
       <AuthFormWrapper
         title="Sign In"
         submitButtonText="Sign In"
         linkText="Don't have an account?"
         linkHref="/sign-up"
-        onSubmit={onSubmit}
+        onSubmit={form.handleSubmit(onSubmit)}
         showGoogleButton={true}
       >
         <Form {...form}>

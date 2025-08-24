@@ -3,6 +3,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation';
+
 import {
   Form,
   FormField,
@@ -16,7 +18,7 @@ import AuthFormWrapper from './AuthForm';
 
 const SignUpSchema = z
   .object({
-    username: z.string().min(1, 'Username is required').max(100),
+    userName: z.string().min(1, 'Username is required').max(100),
     email: z.string().min(1, 'Email is required').email('Invalid email'),
     password: z.string().min(8, 'Password must have at least 8 characters'),
     confirmPassword: z.string().min(1, 'Password confirmation is required'),
@@ -27,12 +29,37 @@ const SignUpSchema = z
   });
 
 export default function SignUpForm() {
+  const router = useRouter();
+
   const form = useForm<z.infer<typeof SignUpSchema>>({
     resolver: zodResolver(SignUpSchema),
-    defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: { userName: '', email: '', password: '', confirmPassword: '' },
   });
 
-  const onSubmit = form.handleSubmit((values) => console.log(values));
+  const onSubmit = async (values: z.infer<typeof SignUpSchema>) => {
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: values.userName,
+          email: values.email,
+          password: values.password,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data);
+
+      if (response.ok) {
+        router.push('/');
+      } else {
+        console.error('Registration failed:', data.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Something went wrong:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 overflow-x-hidden">
@@ -41,13 +68,13 @@ export default function SignUpForm() {
         submitButtonText="Sign Up"
         linkText="Already have an account?"
         linkHref="/sign-in"
-        onSubmit={onSubmit}
+        onSubmit={form.handleSubmit(onSubmit)}
         showGoogleButton={true}
       >
         <Form {...form}>
           <FormField
             control={form.control}
-            name="username"
+            name="userName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Username</FormLabel>
