@@ -1,11 +1,12 @@
-import SignUpForm from '@/components/form/SignUpForm';
+import { SignUp } from '@clerk/nextjs'
+import React from 'react'
 
-const SignUp = () => {
+const SignUpPage = () => {
   return (
-    <div className='w-full'>
-      <SignUpForm />
+    <div>
+      <SignUp/>
     </div>
-  );
-};
+  )
+}
 
-export default SignUp;
+export default SignUpPage;

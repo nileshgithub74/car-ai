@@ -131,3 +131,15 @@
 .animate-shine {
   animation: shine 2s infinite;
 }
+
+
+.dotted-background{
+  background-color: #27334c;
+  background-image: radial-gradient(
+    rgba(255,255,255,0.28) 1px,
+    transparent 1px
+    
+  );
+  background-size: 30px 30px;
+
+}

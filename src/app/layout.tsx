@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/ui/Header";
-
+import {ClerkProvider} from '@clerk/nextjs'
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     
-      <html lang="en">
+    <ClerkProvider>
+
+
+       <html lang="en">
         <body className={`${inter.className}`}>
         
              <Header/>
@@ -33,5 +36,7 @@ export default function RootLayout({
         </body>
       </html>
   
+    </ClerkProvider>
+
   );
 }
