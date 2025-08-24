@@ -7,9 +7,27 @@ import { Button } from "./button";
 import { Badge } from "./badge";
 import { useRouter } from "next/navigation";
 
+export interface Car {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  images: string[];
+  transmission: string;
+  fuelType: string;
+  bodyType: string;
+  mileage: number;
+  color: string;
+  wishlisted: boolean;
+}
+
+interface CarsProps{
+    car: Car
+}
 
 
-const CarCard = ({ car }) => {
+const CarCard :React.FC<CarsProps>= ({ car }) => {
   const [isSaved, setSaved] = useState(car.wishlisted);
 
   const  router = useRouter();
@@ -19,7 +37,7 @@ const CarCard = ({ car }) => {
 
 
   return (
-    <Card className="relative overflow-hidden hover:shadow-lg transition group">
+    <Card className="relative overflow-hidden hover:shadow-lg transition group py-0 ml-4 mr-4 bg-gradient-to-br from-cyan-50 to-rose-100 hover:bg-gradient-to-bl hover:from-red-200 via-purple-200 to-green-200">
       <div className="relative h-48">
         {car.images && car.images.length > 0 ? (
           <div>
@@ -70,15 +88,15 @@ const CarCard = ({ car }) => {
         </div>
 
         <div className="flex flex-wrap gap-1 mb-4">
-          <Badge variant="outline" className="bg-gray-50">
+          <Badge variant="outline" className="bg-gray-100">
             {car.bodyType}
           </Badge>
 
-             <Badge variant="outline" className="bg-gray-50">
+             <Badge variant="outline" className="bg-gray-100">
             {car.mileage.toLocaleString()} miles
           </Badge>
 
-             <Badge variant="outline" className="bg-gray-50">
+             <Badge variant="outline" className="bg-gray-100">
             {car.color}
           </Badge>
 
@@ -87,8 +105,10 @@ const CarCard = ({ car }) => {
 
         </div>
 
-        <div>
-            <Button className="flex-1"
+        <div className="flex border rounded-4xl">
+            <Button 
+            
+            className="flex-1 "
             onClick={()=> router.push("/cars/${car.id}")}
             >View car</Button>
         </div>

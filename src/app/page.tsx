@@ -2,6 +2,11 @@ import CarCard from "@/components/ui/car-card";
 import HomeSearch from "@/components/ui/home-search";
 import { featuredCars } from "@/lib/data";
 import React from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { carMakes } from "@/lib/data";
 
 const Home = () => {
   return (
@@ -26,20 +31,62 @@ const Home = () => {
           <HomeSearch />
         </div>
       </section>
+ 
+     {/* featured cars */}
 
-      <section className="py-13">
-        <div>
-          <div>
-            <h2>Featured Cars</h2>
-            <button className="border rounded-sm border-teal-400 ">
-              View All
-            </button>
+      <section className="py-12 bg-gray-200/50">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold ">Featured Cars</h2>
+            <Button variant="ghost" className="flext items-center " asChild>
+              <Link href="/cars">
+                View All
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
             {featuredCars.map((car) => {
-              return <CarCard key={car.id}  car={car} />;
+              return <CarCard key={car.id} car={car} />;
             })}
+          </div>
+        </div>
+      </section>
+
+
+      {/* browse by makes */}
+
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold ">Browsed By Makes</h2>
+            <Button variant="ghost" className="flext items-center " asChild>
+              <Link href="/cars">
+                View All
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 ">
+            {carMakes.map((make) => (
+              <Link
+                key={make.name}
+                href={`/cars?make=${make.name}`}
+                className="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition cursor-pointer"
+              >
+                <div className=" w-32 h-32 mx-4 mb-2 relative">
+                  <Image
+                    src={make.image}
+                    alt={make.name}
+                    fill
+                    style={{objectFit:"contain"}}
+                  />
+                </div>
+            
+              </Link>
+            ))}
           </div>
         </div>
       </section>
