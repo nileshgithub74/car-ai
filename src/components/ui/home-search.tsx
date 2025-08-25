@@ -5,6 +5,8 @@ import { Camera, Upload } from "lucide-react";
 import { Button } from "./button";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
 
 const HomeSearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -13,13 +15,25 @@ const HomeSearch: React.FC = () => {
   const [searchImage, setSearchImage] = useState<File | null>(null);
   const [isUpload, setIsUpload] = useState<boolean>(false);
 
+
+  const router  = useRouter();
+
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if(!searchTerm.trim()){
+      toast.error("Please enter  a search term");
+    }
     console.log("Searching for:", searchTerm);
+
+    router.push(`/cars?search=${encodeURIComponent(searchTerm)}`);
   };
 
   const handleImageSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if(!searchImage){
+      toast.error("Please  upload the image");
+    }
     console.log("Searching by image:", searchImage);
   };
 
@@ -145,9 +159,25 @@ const HomeSearch: React.FC = () => {
                   <p className="text-gray-400 text-sm">
                     Supports: JPG, PNG (max 20MB)
                   </p>
-                </div>
-              )}
+                </div>)}
             </div>
+
+            {!imagePreview &&
+            (
+               <Button type='submit'
+               className="w-full mb-2"
+               disabled={isUpload}
+              >
+              {isUpload ? "Uploading..." : "search with this image"}
+              </Button>
+             
+            )};
+
+
+
+
+
+
           </form>
         </div>
       )}
