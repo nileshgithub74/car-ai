@@ -1,4 +1,4 @@
-import CarCard from "@/components/ui/car-card";
+ import CarCard from "@/components/ui/car-card";
 import HomeSearch from "@/components/ui/home-search";
 import { bodyTypes, faqItems, featuredCars } from "@/lib/data";
 import React from "react";
