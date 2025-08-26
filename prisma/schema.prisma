@@ -1,15 +1,145 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String             @id @default(uuid())
+  clerkUserId String             @unique
+  email       String             @unique
+  name        String?
+  imageUrl    String?
+  phone       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  role        UserRole           @default(USER)
+  savedCars   UserSavedCars[]
+  testDrives  TestDriveBooking[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Car {
+  id                String             @id @default(uuid())
+  make              String
+  model             String
+  year              Int
+  price             Decimal            @db.Decimal(10, 2)
+  mileage           Int
+  color             String
+  fuelType          String
+  transmission      String
+  bodyType          String
+  seats             Int?
+  description       String
+  status            CarStatus          @default(AVAILABLE)
+  featured          Boolean            @default(false)
+  images            String[]
+  savedBy           UserSavedCars[]
+  testDriveBookings TestDriveBooking[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([bodyType])
+  @@index([make, model])
+  @@index([price])
+  @@index([year])
+  @@index([status])
+  @@index([fuelType])
+  @@index([featured])
+}
+
+enum CarStatus {
+  AVAILABLE
+  UNAVAILABLE
+  SOLD
+}
+
+model TestDriveBooking {
+  id        String @id @default(uuid())
+  carId     String
+  car       Car    @relation(fields: [carId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingDate DateTime @db.Date
+  startTime String
+  endTime   String
+  status    BookingStatus
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([carId])
+  @@index([userId])
+  @@index([bookingDate])
+  @@index([status])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model DealershipInfo {
+  id           String        @id @default(uuid())
+  name         String        @default("Vehiql Motors")
+  address      String        @default("Car Street, Autovill")
+  phone        String        @default("(555) 123-4567")
+  email        String        @default("contact@vehiql.com")
+  workingHours WorkingHour[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model WorkingHour {
+  id           String         @id @default(uuid())
+  dealershipId String
+  dealership   DealershipInfo @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  dayOfWeek    DayOfWeek
+  openTime     String
+  closeTime    String
+  isOpen       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([dealershipId, dayOfWeek])
+  @@index([dayOfWeek])
+  @@index([dealershipId])
+  @@index([isOpen])
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model UserSavedCars {
+  id      String   @id @default(uuid())
+  userId  String
+  carId   String
+  savedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, carId])
+  @@index([userId])
+  @@index([carId])
 }
