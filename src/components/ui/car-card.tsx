@@ -43,9 +43,10 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
           <div>
             <Image
               src={car.images[0]}
-              alt={`${car.make} ${car.model}`}
-              fill
-              className="object-cover group-hover:scale-105 transition duration-300"
+  alt={`${car.make} ${car.model}`}
+  fill
+  // sizes="100vw"
+  className="object-cover group-hover:scale-105 transition duration-300"
             />
           </div>
         ) : (
@@ -70,10 +71,10 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
       </Button>
       <CardContent className="p-4">
         <div className="flex flex-col mb-2">
-          <h3 className="text-lg font-bold line-clamp-1">
+          <h3 className="text-md font-bold line-clamp-1">
             {car.make} {car.model}
           </h3>
-          <span className="text-xl font-bold text-blue-500">
+          <span className="text-xl font-bold  text-blue-600">
             {" "}
             ${car.price.toLocaleString()}
           </span>
@@ -82,7 +83,7 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
         <div className="text-gray-600 mb-2 flex items-center">
           <span>{car.year}</span>
           <span className="mx-2">.</span>
-          <span>{car.year}</span>
+          <span>{car.transmission}</span>
           <span className="mx-2">.</span>
           <span>{car.fuelType}</span>
         </div>
@@ -109,7 +110,7 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
             <Button 
             
             className="flex-1 "
-            onClick={()=> router.push("/cars/${car.id}")}
+            onClick={()=> router.push(`/cars/${car.id}`)}
             >View car</Button>
         </div>
 

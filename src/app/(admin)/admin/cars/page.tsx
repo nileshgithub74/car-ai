@@ -12,11 +12,11 @@ const CreateCarpage = () => {
   return (
     <div className='p-6'>
         <div className="text-2xl font-bold mb-6">Cars Management</div>
-<CarsList/>
+        <CarsList/>
 
 
     </div>
   )
 }
 
-export default CreateCarpage
+export default CreateCarpage;

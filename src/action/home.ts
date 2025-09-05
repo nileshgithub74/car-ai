@@ -2,8 +2,9 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
-// import aj from "@/lib/arcjet";
-// import { request } from "@arcjet/next";
+import aj from "@/lib/arcjet";
+import { request } from "@arcjet/next";
+
 
 // Function to serialize car data
 function serializeCarData(car: any) {
@@ -48,10 +49,31 @@ async function fileToBase64(file: File) {
  */
 export async function processImageSearch(file: File) {
   try {
-    // Note: ArcJet rate limiting is temporarily disabled
-    // const req = await request();
-    // const decision = await aj.protect(req, { requested: 1 });
-    // if (decision.isDenied()) { ... }
+     const req = await request();
+
+    // Check rate limit
+    const decision = await aj.protect(req, {
+      requested: 1, // Specify how many tokens to consume
+    });
+
+    if (decision.isDenied()) {
+      if (decision.reason.isRateLimit()) {
+        const { remaining, reset } = decision.reason;
+        console.error({
+          code: "RATE_LIMIT_EXCEEDED",
+          details: {
+            remaining,
+            resetInSeconds: reset,
+          },
+        });
+
+        throw new Error("Too many requests. Please try again later.");
+      }
+
+      throw new Error("Request blocked");
+  }
+   
+
 
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {

@@ -1,6 +1,6 @@
  import CarCard from "@/components/ui/car-card";
-import HomeSearch from "@/components/ui/home-search";
-import { bodyTypes, faqItems, featuredCars } from "@/lib/data";
+import { HomeSearch } from "@/components/ui/home-search";
+import { bodyTypes, faqItems} from "@/lib/data";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -14,8 +14,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SignedOut } from "@clerk/nextjs";
+import { getFeaturedCars } from "@/action/home";
 
-const Home = () => {
+const Home = async () => {
+
+  const featuredCars  = await getFeaturedCars();
+  console.log("Featured cars:", featuredCars);
+
+
   return (
     <div className="pt-20 flex flex-col">
       {/* her0 */}
@@ -63,7 +69,7 @@ const Home = () => {
 
       {/* browse by makes */}
 
-      <section className="py-12 bg-yellow-100/40">
+      <section className="py-12 bg-yellow-100/20">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold ">Browsed By Makes</h2>
