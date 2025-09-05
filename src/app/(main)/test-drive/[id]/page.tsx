@@ -2,11 +2,11 @@ import { getCarById } from "@/action/car-listing";
 import { notFound } from "next/navigation";
 import { TestDriveForm } from "./_component/test-drive-form";
 
-export async function generateMetadata({ params: _params }: { params: Promise<{ id: string }> }) {
-  // const { id } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return {
     title: `Book Test Drive | Vehiql`,
-    description: `Schedule a test drive in few seconds`,
+    description: `Schedule a test drive for car ${id} in few seconds`,
   };
 }
 
