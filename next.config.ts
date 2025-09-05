@@ -1,8 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsHmrCache: false,
+    serverComponentsHmrCache: true, // Enable HMR caching for better performance
+    optimizePackageImports: ['@radix-ui/react-accordion', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', 'lucide-react'],
   },
+  // Development optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    typescript: {
+      ignoreBuildErrors: false,
+    },
+    eslint: {
+      ignoreDuringBuilds: false,
+    },
+    // Faster builds in development
+    swcMinify: false,
+  }),
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "ymqpkygmownybanldbpq.supabase.co" },
