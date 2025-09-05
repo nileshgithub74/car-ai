@@ -106,7 +106,7 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
 
         </div>
 
-        <div className="flex border rounded-4xl">
+        <div className="flex border rounded-4xl cursor-pointer">
             <Button 
             
             className="flex-1 "
