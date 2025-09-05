@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toggleSavedCar } from "@/actions/car-listing";
+import { toggleSavedCar } from "@/action/car-listing";
 import useFetch from "@/hooks/use-fetch";
 import { formatCurrency } from "@/lib/helpers";
 import { format } from "date-fns";
@@ -33,7 +33,44 @@ import {
 } from "@/components/ui/dialog";
 import EmiCalculator from "./emi-calculator";
 
-export function CarDetails({ car, testDriveInfo }) {
+interface Car {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  fuelType: string;
+  transmission: string;
+  bodyType: string;
+  color: string;
+  seats?: number;
+  description: string;
+  status: string;
+  images: string[];
+  wishlisted?: boolean;
+}
+
+interface TestDriveInfo {
+  userTestDrive?: {
+    id: string;
+    status: string;
+    bookingDate: string;
+  } | null;
+  dealership?: {
+    address?: string;
+    phone?: string;
+    email?: string;
+    workingHours?: Array<{
+      dayOfWeek: string;
+      isOpen: boolean;
+      openTime: string;
+      closeTime: string;
+    }>;
+  } | null;
+}
+
+export function CarDetails({ car, testDriveInfo }: { car: Car; testDriveInfo: TestDriveInfo }) {
   const router = useRouter();
   const { isSignedIn } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -48,9 +85,10 @@ export function CarDetails({ car, testDriveInfo }) {
 
   // Handle toggle result with useEffect
   useEffect(() => {
-    if (toggleResult?.success) {
-      setIsWishlisted(toggleResult.saved);
-      toast.success(toggleResult.message);
+    const result = toggleResult as { success?: boolean; saved?: boolean; message?: string } | undefined;
+    if (result?.success) {
+      setIsWishlisted(result.saved || false);
+      toast.success(result.message || "Car saved successfully");
     }
   }, [toggleResult]);
 
@@ -132,7 +170,7 @@ export function CarDetails({ car, testDriveInfo }) {
           {/* Thumbnails */}
           {car.images && car.images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {car.images.map((image, index) => (
+              {car.images.map((image: string, index: number) => (
                 <div
                   key={index}
                   className={`relative cursor-pointer rounded-md h-20 w-24 flex-shrink-0 transition ${
@@ -273,7 +311,7 @@ export function CarDetails({ car, testDriveInfo }) {
             <Button
               className="w-full py-6 text-lg"
               onClick={handleBookTestDrive}
-              disabled={testDriveInfo.userTestDrive}
+              disabled={!!testDriveInfo.userTestDrive}
             >
               <Calendar className="mr-2 h-5 w-5" />
               {testDriveInfo.userTestDrive
@@ -403,7 +441,7 @@ export function CarDetails({ car, testDriveInfo }) {
               <div className="space-y-2">
                 {testDriveInfo.dealership?.workingHours
                   ? testDriveInfo.dealership.workingHours
-                      .sort((a, b) => {
+                      .sort((a: any, b: any) => {
                         const days = [
                           "MONDAY",
                           "TUESDAY",
@@ -417,7 +455,7 @@ export function CarDetails({ car, testDriveInfo }) {
                           days.indexOf(a.dayOfWeek) - days.indexOf(b.dayOfWeek)
                         );
                       })
-                      .map((day) => (
+                      .map((day: any) => (
                         <div
                           key={day.dayOfWeek}
                           className="flex justify-between text-sm"

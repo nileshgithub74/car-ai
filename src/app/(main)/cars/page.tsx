@@ -1,6 +1,6 @@
-import { CarFilters } from "./_components/car-filters";
-import { getCarFilters } from "@/actions/car-listing";
-import { CarListings } from "./_components/cars-listing";
+import { CarFilters } from "./_component/car-filter";
+import { getCarFilters } from "@/action/car-listing";
+import { CarListings } from "./_component/cars-listing";
 
 export const metadata = {
   title: "Cars | Vehiql",

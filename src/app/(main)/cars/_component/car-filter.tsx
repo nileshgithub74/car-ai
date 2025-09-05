@@ -22,7 +22,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const CarFilters = ({ filters }) => {
+interface Filters {
+  makes: string[];
+  bodyTypes: string[];
+  fuelTypes: string[];
+  transmissions: string[];
+  priceRange: {
+    min: number;
+    max: number;
+  };
+}
+
+export const CarFilters = ({ filters }: { filters: Filters }) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,10 +44,10 @@ export const CarFilters = ({ filters }) => {
   const currentFuelType = searchParams.get("fuelType") || "";
   const currentTransmission = searchParams.get("transmission") || "";
   const currentMinPrice = searchParams.get("minPrice")
-    ? parseInt(searchParams.get("minPrice"))
+    ? parseInt(searchParams.get("minPrice")!)
     : filters.priceRange.min;
   const currentMaxPrice = searchParams.get("maxPrice")
-    ? parseInt(searchParams.get("maxPrice"))
+    ? parseInt(searchParams.get("maxPrice")!)
     : filters.priceRange.max;
   const currentSortBy = searchParams.get("sortBy") || "newest";
 
@@ -119,7 +130,7 @@ export const CarFilters = ({ filters }) => {
   ]);
 
   // Handle filter changes
-  const handleFilterChange = (filterName, value) => {
+  const handleFilterChange = (filterName: string, value: any) => {
     switch (filterName) {
       case "make":
         setMake(value);
@@ -140,7 +151,7 @@ export const CarFilters = ({ filters }) => {
   };
 
   // Handle clearing specific filter
-  const handleClearFilter = (filterName) => {
+  const handleClearFilter = (filterName: string) => {
     handleFilterChange(filterName, "");
   };
 

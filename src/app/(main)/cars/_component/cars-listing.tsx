@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
-import { CarCard} from "@/components/ui/car-card";
+import CarCard, { Car as CarCardType } from "@/components/ui/car-card";
 import useFetch from "@/hooks/use-fetch";
 import { getCars } from "@/action/car-listing";
 import CarListingsLoading from "./car-listing-loading";
@@ -34,8 +34,8 @@ export function CarListings() {
   const bodyType = searchParams.get("bodyType") || "";
   const fuelType = searchParams.get("fuelType") || "";
   const transmission = searchParams.get("transmission") || "";
-  const minPrice = searchParams.get("minPrice") || 0;
-  const maxPrice = searchParams.get("maxPrice") || Number.MAX_SAFE_INTEGER;
+  const minPrice = searchParams.get("minPrice") ? parseInt(searchParams.get("minPrice")!) : 0;
+  const maxPrice = searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice")!) : Number.MAX_SAFE_INTEGER;
   const sortBy = searchParams.get("sortBy") || "newest";
   const page = parseInt(searchParams.get("page") || "1");
 
@@ -78,12 +78,12 @@ export function CarListings() {
   }, [currentPage, router, searchParams, page]);
 
   // Handle pagination clicks
-  const handlePageChange = (pageNum) => {
+  const handlePageChange = (pageNum: number) => {
     setCurrentPage(pageNum);
   };
 
   // Generate pagination URL
-  const getPaginationUrl = (pageNum) => {
+  const getPaginationUrl = (pageNum: number) => {
     const params = new URLSearchParams(searchParams);
     params.set("page", pageNum.toString());
     return `?${params.toString()}`;
@@ -134,7 +134,7 @@ export function CarListings() {
   }
 
   // Generate pagination items
-  const paginationItems = [];
+  const paginationItems: React.ReactNode[] = [];
 
   // Calculate which page numbers to show (first, last, and around current page)
   const visiblePageNumbers = [];
@@ -207,7 +207,7 @@ export function CarListings() {
       {/* Car grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cars.map((car) => (
-          <CarCard key={car.id} car={car} />
+          <CarCard key={car.id} car={car as CarCardType} />
         ))}
       </div>
 
