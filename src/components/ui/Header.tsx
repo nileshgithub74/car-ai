@@ -24,7 +24,7 @@ const Header = async ({ isAdminPage = false }) => {
             className="h-12 w-auto object-contain space-x-2"
           />
           {isAdminPage && (
-            <span className="text-xs font-extralight">admin</span>
+            <span className="text-xs font-extralight"></span>
           )}
         </Link>
 

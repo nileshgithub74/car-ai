@@ -8,7 +8,7 @@ import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 import { serializeCarData } from "@/lib/helpers";
-import type { Prisma, CarStatus } from "@/generated/prisma";
+import type { CarStatus } from "@/generated/prisma";
 
 // Function to convert File to base64
 async function fileToBase64(file: File): Promise<string> {
@@ -170,7 +170,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
     const folderPath = `cars/${carId}`;
 
     // Initialize Supabase client for server-side operations
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = await createClient(cookieStore);
 
     // Upload all images to Supabase storage
@@ -219,6 +219,19 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
       throw new Error("No valid images were uploaded");
     }
 
+    // Normalize and validate price
+    const rawPrice = carData.price;
+    const numericPrice =
+      typeof rawPrice === "number"
+        ? rawPrice
+        : parseFloat(String(rawPrice).replace(/[^0-9.]/g, ""));
+
+    if (!Number.isFinite(numericPrice)) {
+      throw new Error("Invalid price value");
+    }
+
+    const priceString = numericPrice.toFixed(2);
+
     // Add the car to the database
     const car = await db.car.create({
       data: {
@@ -226,7 +239,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
         make: carData.make,
         model: carData.model,
         year: carData.year,
-        price: carData.price as unknown as Prisma.Decimal | number | string,
+        price: priceString,
         mileage: carData.mileage,
         color: carData.color,
         fuelType: carData.fuelType,
@@ -319,7 +332,7 @@ export async function deleteCar(id: string): Promise<{ success: boolean; error?:
 
     // Delete the images from Supabase storage
     try {
-      const cookieStore = cookies();
+      const cookieStore = await cookies();
       const supabase = await createClient(cookieStore);
 
       // Extract file paths from image URLs

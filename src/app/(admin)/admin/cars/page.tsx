@@ -3,7 +3,7 @@ import React from 'react'
 import { CarsList } from './_component/CarList'
 
 
-export const metaData = {
+export const metadata = {
     title :"Cars | Vehiql Admin",
     description : " Manage Cars in your marketPlace"
 }

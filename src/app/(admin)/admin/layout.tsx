@@ -2,7 +2,7 @@ import { getadmin } from "@/action/admin";
 import Header from "@/components/ui/Header";
 import { notFound } from "next/navigation";
 import React, { ReactNode } from "react";
-import { Sidebar } from "./components/Sidebar/page";
+import Sidebar from "./components/Sidebar/page";
 
 
 type Props = {

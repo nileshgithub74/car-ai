@@ -43,7 +43,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import useFetch from "@/hooks/use-fetch";
-import { getCars, deleteCar, updateCarStatus } from "@/action/car";
+import { getCars, deleteCar, updateCarStatus } from "@/action/cars";
 import { formatCurrency } from "@/lib/helpers";
 import Image from "next/image";
 import type { SerializedCar } from "@/lib/helpers";

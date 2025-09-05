@@ -1,7 +1,7 @@
 import { AddCarForm } from "../_component/AddCarForm";
 
 
-export const metaData = {
+export const metadata = {
     title :"Cars | Vehiql Admin",
     description : " Manage Cars in your marketPlace"
 }

@@ -29,7 +29,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { addCar, processCarImageWithAI } from "@/action/car";
+import { addCar, processCarImageWithAI } from "@/action/cars";
 import useFetch from "@/hooks/use-fetch";
 import Image from "next/image";
 
