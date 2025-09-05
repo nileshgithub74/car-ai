@@ -50,35 +50,36 @@ async function fileToBase64(file: File) {
  */
 export async function processImageSearch(file: File) {
   try {
-     const req = await request();
+    // Check rate limit only if arcjet is available
+    if (aj) {
+      const req = await request();
+      const decision = await aj.protect(req, {
+        requested: 1, // Specify how many tokens to consume
+      });
 
-    // Check rate limit
-    const decision = await aj.protect(req, {
-      requested: 1, // Specify how many tokens to consume
-    });
+      if (decision.isDenied()) {
+        if (decision.reason.isRateLimit()) {
+          const { remaining, reset } = decision.reason;
+          console.error({
+            code: "RATE_LIMIT_EXCEEDED",
+            details: {
+              remaining,
+              resetInSeconds: reset,
+            },
+          });
 
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        const { remaining, reset } = decision.reason;
-        console.error({
-          code: "RATE_LIMIT_EXCEEDED",
-          details: {
-            remaining,
-            resetInSeconds: reset,
-          },
-        });
+          throw new Error("Too many requests. Please try again later.");
+        }
 
-        throw new Error("Too many requests. Please try again later.");
+        throw new Error("Request blocked");
       }
-
-      throw new Error("Request blocked");
-  }
+    }
    
 
 
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Gemini API key is not configured");
+      return { success: false, error: "Gemini API key is not configured" };
     }
 
     // Initialize Gemini API

@@ -8,9 +8,9 @@ const isProtectedRoute = createRouteMatcher([
   "/reservations(.*)",
 ]);
 
-// Create Arcjet middleware
-const aj = arcjet({
-  key: process.env.ARCJET_KEY!,
+// Create Arcjet middleware - only if key is available
+const aj = process.env.ARCJET_KEY ? arcjet({
+  key: process.env.ARCJET_KEY,
   // characteristics: ["userId"], // Track based on Clerk userId
   rules: [
     // Shield protection for content and security
@@ -25,7 +25,7 @@ const aj = arcjet({
       ],
     }),
   ],
-});
+}) : null;
 
 // Create base Clerk middleware
 const clerk = clerkMiddleware(async (auth, req) => {
@@ -39,8 +39,8 @@ const clerk = clerkMiddleware(async (auth, req) => {
   return NextResponse.next();
 });
 
-// Chain middlewares - ArcJet runs first, then Clerk
-export default createMiddleware(aj, clerk);
+// Chain middlewares - ArcJet runs first (if available), then Clerk
+export default aj ? createMiddleware(aj, clerk) : clerk;
 
 export const config = {
   matcher: [

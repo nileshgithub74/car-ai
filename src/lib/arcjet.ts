@@ -1,11 +1,8 @@
 // lib/arcjet.ts
 import arcjet, { tokenBucket } from "@arcjet/next";
 
-if (!process.env.ARCJET_KEY) {
-  throw new Error(" Missing ARCJET_KEY in environment variables");
-}
-
-const aj = arcjet({
+// Only create arcjet instance if key is available
+const aj = process.env.ARCJET_KEY ? arcjet({
   key: process.env.ARCJET_KEY,
   characteristics: ["ip.src"], // you still configure this
   rules: [
@@ -16,6 +13,6 @@ const aj = arcjet({
       capacity: 10,
     }),
   ],
-});
+}) : null;
 
 export default aj;

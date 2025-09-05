@@ -27,7 +27,7 @@ export async function processCarImageWithAI(
   try {
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error("Gemini API key is not configured");
+      return { success: false, error: "Gemini API key is not configured" };
     }
 
     // Initialize Gemini API
