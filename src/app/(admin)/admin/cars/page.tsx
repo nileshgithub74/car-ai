@@ -1,6 +1,6 @@
 import { title } from 'process'
 import React from 'react'
-import CarList from './_component/CarList'
+import { CarsList } from './_component/CarList'
 
 
 export const metaData = {
@@ -12,7 +12,7 @@ const CreateCarpage = () => {
   return (
     <div className='p-6'>
         <div className="text-2xl font-bold mb-6">Cars Management</div>
-<CarList/>
+<CarsList/>
 
 
     </div>
