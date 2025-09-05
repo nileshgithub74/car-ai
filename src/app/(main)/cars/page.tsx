@@ -13,7 +13,14 @@ export default async function CarsPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-6xl mb-4 gradient-title">Browse Cars</h1>
+  <h1 className="font-bold tracking-tighter pr-2 pb-2 text-transparent bg-clip-text text-4xl md:text-4xl 
+               bg-gradient-to-br from-rose-500 via-cyan-300 via-red-400 to-green-200">
+  Browse Cars
+</h1>
+
+
+
+
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Section */}

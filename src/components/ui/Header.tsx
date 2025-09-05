@@ -60,7 +60,7 @@ const Header = async ({ isAdminPage = false }) => {
             </>
           ) : (
             <SignedIn>
-              {/* ❌ Non-admin: Saved Cars + My Reservations */}
+              {/*  Non-admin: Saved Cars + My Reservations */}
               <Link href="/saved-cars">
                 <Button>
                   <Heart size={18} />
