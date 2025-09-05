@@ -1,17 +1,22 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isProtectedRoute = createRouteMatcher([
-  "/admin(.*)",
-  "/saved-cars(.*)",
-  "/reservations(.*)",
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
 ]);
 
 // Simplified middleware without Arcjet to reduce bundle size
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
-  if (!userId && isProtectedRoute(req)) {
+  // Allow access to public routes (sign-in, sign-up)
+  if (isPublicRoute(req)) {
+    return NextResponse.next();
+  }
+
+  // Require authentication for all other routes
+  if (!userId) {
     const { redirectToSignIn } = await auth();
     return redirectToSignIn();
   }
