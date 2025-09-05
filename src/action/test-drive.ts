@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-import { serializeCarData } from "@/lib/helpers";
+import { serializeCarData, type Car } from "@/lib/helpers";
 
 /**
  * Books a test drive for a car
@@ -128,7 +128,7 @@ export async function getUserTestDrives() {
       car: serializeCarData({
         ...booking.car,
         price: Number(booking.car.price),
-      } as any),
+      } as Car),
       bookingDate: booking.bookingDate.toISOString(),
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -189,8 +189,8 @@ export async function cancelTestDrive(bookingId: string) {
       };
     }
 
-    // Check if user owns this booking
-    if (booking.userId !== user.id || user.role !== "ADMIN") {
+    // Check if user owns this booking or is admin
+    if (booking.userId !== user.id && user.role !== "ADMIN") {
       return {
         success: false,
         error: "Unauthorized to cancel this booking",

@@ -22,6 +22,7 @@ interface Car {
 
 interface InitialData {
   data?: Car[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -35,7 +36,7 @@ export function SavedCarsList({ initialData }: { initialData: InitialData }) {
         </div>
         <h3 className="text-lg font-medium mb-2">No Saved Cars</h3>
         <p className="text-gray-500 mb-6 max-w-md">
-          You haven't saved any cars yet. Browse our listings and click the
+          You haven&apos;t saved any cars yet. Browse our listings and click the
           heart icon to save cars for later.
         </p>
         <Button variant="default" asChild>
@@ -49,6 +50,7 @@ export function SavedCarsList({ initialData }: { initialData: InitialData }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {initialData?.data?.map((car: Car) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         <CarCard key={car.id} car={{ ...car, wishlisted: true } as any} />
       ))}
     </div>

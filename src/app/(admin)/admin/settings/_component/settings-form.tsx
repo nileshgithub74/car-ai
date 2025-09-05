@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import Image from "next/image";
 import {
   Save,
   Clock,
@@ -62,20 +63,20 @@ const DAYS = [
 ];
 
 type WorkingHour = {
-  dayOfWeek: string;
+  dayOfWeek: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
   openTime: string;
   closeTime: string;
   isOpen: boolean;
 };
 
-type DealershipData = {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  workingHours: WorkingHour[];
-};
+// type DealershipData = {
+//   id: string;
+//   name: string;
+//   address: string;
+//   phone: string;
+//   email: string;
+//   workingHours: Record<string, { start: string; end: string; } | null>;
+// };
 
 type UsersResponseUser = {
   id: string;
@@ -88,7 +89,7 @@ type UsersResponseUser = {
 export const SettingsForm = () => {
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>(
     DAYS.map((day) => ({
-      dayOfWeek: day.value,
+      dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
       openTime: "09:00",
       closeTime: "18:00",
       isOpen: day.value !== "SUNDAY",
@@ -103,7 +104,6 @@ export const SettingsForm = () => {
 
   // Custom hooks for API calls
   const {
-    loading: fetchingSettings,
     fn: fetchDealershipInfo,
     data: settingsData,
     error: settingsError,
@@ -134,36 +134,34 @@ export const SettingsForm = () => {
   useEffect(() => {
     fetchDealershipInfo();
     fetchUsers();
-  }, []);
+  }, [fetchDealershipInfo, fetchUsers]);
 
   // Set working hours when settings data is fetched
   useEffect(() => {
-    if ((settingsData as { success?: boolean; data?: DealershipData })?.success && (settingsData as { data?: DealershipData }).data) {
-      const dealership = (settingsData as { data: DealershipData }).data;
+    if (settingsData?.success && settingsData.data) {
+      const dealership = settingsData.data;
 
-      // Map the working hours
-      if (dealership.workingHours.length > 0) {
+      // Map the working hours from Record to WorkingHour array
+      if (dealership.workingHours && Object.keys(dealership.workingHours).length > 0) {
         const mappedHours = DAYS.map((day) => {
-          // Find matching working hour
-          const hourData = dealership.workingHours.find(
-            (h) => h.dayOfWeek === day.value
-          );
+          // Find matching working hour from Record
+          const hourData = dealership.workingHours[day.value];
 
           if (hourData) {
-            return {
-              dayOfWeek: hourData.dayOfWeek,
-              openTime: hourData.openTime,
-              closeTime: hourData.closeTime,
-              isOpen: hourData.isOpen,
-            };
+                      return {
+            dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
+            openTime: hourData.start,
+            closeTime: hourData.end,
+            isOpen: true,
+          };
           }
 
-          // Default values if no working hour is found
+          // Default values if no working hour is found or if it's null (closed)
           return {
-            dayOfWeek: day.value,
+            dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
             openTime: "09:00",
             closeTime: "18:00",
-            isOpen: day.value !== "SUNDAY",
+            isOpen: false,
           };
         });
 
@@ -204,7 +202,7 @@ export const SettingsForm = () => {
       setConfirmAdminDialog(false);
       setConfirmRemoveDialog(false);
     }
-  }, [saveResult, updateRoleResult]);
+  }, [saveResult, updateRoleResult, fetchUsers, fetchDealershipInfo]);
 
   // Handle working hours change
   const handleWorkingHourChange = (
@@ -266,7 +264,7 @@ export const SettingsForm = () => {
             <CardHeader>
               <CardTitle>Working Hours</CardTitle>
               <CardDescription>
-                Set your dealership's working hours for each day of the week.
+                Set your dealership&apos;s working hours for each day of the week.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -405,9 +403,11 @@ export const SettingsForm = () => {
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                                 {user.imageUrl ? (
-                                  <img
+                                  <Image
                                     src={user.imageUrl}
                                     alt={user.name || "User"}
+                                    width={32}
+                                    height={32}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (

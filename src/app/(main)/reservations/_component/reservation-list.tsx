@@ -33,6 +33,7 @@ interface Booking {
 
 interface InitialData {
   data?: Booking[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -66,7 +67,7 @@ export function ReservationsList({ initialData }: { initialData: InitialData }) 
         </div>
         <h3 className="text-lg font-medium mb-2">No Reservations Found</h3>
         <p className="text-gray-500 mb-6 max-w-md">
-          You don't have any test drive reservations yet. Browse our cars and
+          You don&apos;t have any test drive reservations yet. Browse our cars and
           book a test drive to get started.
         </p>
         <Button variant="default" asChild>

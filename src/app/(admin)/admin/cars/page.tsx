@@ -1,4 +1,3 @@
-import { title } from 'process'
 import React from 'react'
 import { CarsList } from './_component/CarList'
 

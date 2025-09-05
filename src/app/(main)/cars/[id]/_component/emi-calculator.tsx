@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 interface EmiCalculatorProps {
   price?: number;
@@ -21,7 +21,7 @@ function EmiCalculator({ price = 1000 }: EmiCalculatorProps) {
   const [interestRate, setInterestRate] = useState(5);
   const [loanTenure, setLoanTenure] = useState(1);
   const [results, setResults] = useState<LoanResults | null>(null);
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
 
   const handleLoanAmountChange = (value: number) => {
     const newLoanAmount = Math.min(Math.max(value, 1000), 150000);
@@ -38,13 +38,13 @@ function EmiCalculator({ price = 1000 }: EmiCalculatorProps) {
     calculateLoan(loanAmount, newDownPayment, interestRate, loanTenure);
   };
 
-  const handleDownPaymentPercentChange = (percent: number) => {
-    const newPercent = Math.min(Math.max(percent, 0), 100);
-    setDownPaymentPercent(newPercent);
-    const newDownPayment = (newPercent / 100) * loanAmount;
-    setDownPayment(newDownPayment);
-    calculateLoan(loanAmount, newDownPayment, interestRate, loanTenure);
-  };
+  // const handleDownPaymentPercentChange = (percent: number) => {
+  //   const newPercent = Math.min(Math.max(percent, 0), 100);
+  //   setDownPaymentPercent(newPercent);
+  //   const newDownPayment = (newPercent / 100) * loanAmount;
+  //   setDownPayment(newDownPayment);
+  //   calculateLoan(loanAmount, newDownPayment, interestRate, loanTenure);
+  // };
 
   const handleInterestRateChange = (value: number) => {
     const newRate = Math.min(Math.max(value, 0.1), 25);
@@ -58,7 +58,7 @@ function EmiCalculator({ price = 1000 }: EmiCalculatorProps) {
     calculateLoan(loanAmount, downPayment, interestRate, newTenure);
   };
 
-  const calculateLoan = (principal: number, down: number, rate: number, years: number) => {
+  const calculateLoan = useCallback((principal: number, down: number, rate: number, years: number) => {
     const loanPrincipal = principal - down;
     if (loanPrincipal <= 0) {
       setResults(null);
@@ -81,11 +81,11 @@ function EmiCalculator({ price = 1000 }: EmiCalculatorProps) {
       loanPrincipal: loanPrincipal.toFixed(2),
       downPayment: down.toFixed(2),
     });
-  };
+  }, []);
 
   useEffect(() => {
     calculateLoan(loanAmount, downPayment, interestRate, loanTenure);
-  }, []);
+  }, [loanAmount, downPayment, interestRate, loanTenure, calculateLoan]);
 
   const formatNumber = (num: number | string) => {
     return new Intl.NumberFormat("en-US").format(Number(num));
@@ -231,11 +231,11 @@ function EmiCalculator({ price = 1000 }: EmiCalculatorProps) {
             </div>
           </div>
 
-          {error && (
+          {/* {error && (
             <div className="text-red-500 dark:text-red-400 text-sm mt-3">
               {error}
             </div>
-          )}
+          )} */}
 
           {results && (
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mt-4">

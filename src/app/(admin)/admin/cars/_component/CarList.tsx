@@ -81,7 +81,7 @@ export const CarsList = () => {
   // Initial fetch and refetch on search changes
   useEffect(() => {
     fetchCars(search);
-  }, [search]);
+  }, [search, fetchCars]);
 
   // Handle errors
   useEffect(() => {
@@ -109,7 +109,7 @@ export const CarsList = () => {
       toast.success("Car updated successfully");
       fetchCars(search);
     }
-  }, [deleteResult, updateResult, search]);
+  }, [deleteResult, updateResult, search, fetchCars]);
 
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {

@@ -99,7 +99,8 @@ export async function getCars({
     }
 
     // Build where conditions
-    let where: any = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
       status: "AVAILABLE",
     };
 
@@ -171,7 +172,7 @@ export async function getCars({
       serializeCarData({
         ...car,
         price: Number(car.price),
-      } as any, wishlisted.has(car.id))
+      }, wishlisted.has(car.id))
     );
 
     return {
@@ -342,7 +343,7 @@ export async function getCarById(carId: string) {
         ...serializeCarData({
           ...car,
           price: Number(car.price),
-        } as any, isWishlisted),
+        }, isWishlisted),
         testDriveInfo: {
           userTestDrive,
           dealership: dealership
@@ -401,7 +402,10 @@ export async function getSavedCars() {
     });
 
     // Extract and format car data
-    const cars = savedCars.map((saved: any) => serializeCarData(saved.car));
+    const cars = savedCars.map((saved) => serializeCarData({
+      ...saved.car,
+      price: Number(saved.car.price),
+    }));
 
     return {
       success: true,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Search, Upload, Camera } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ export const  HomeSearch = ()=> {
   }, [processError]);
 
   // Handle image upload with react-dropzone
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onDrop = (acceptedFiles : any )  => {
     const file = acceptedFiles[0];
     if (file) {
@@ -147,9 +149,11 @@ export const  HomeSearch = ()=> {
             <div className="border-2 border-dashed border-gray-300 rounded-3xl p-6 text-center">
               {imagePreview ? (
                 <div className="flex flex-col items-center">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Car preview"
+                    width={400}
+                    height={160}
                     className="h-40 object-contain mb-4"
                   />
                   <Button

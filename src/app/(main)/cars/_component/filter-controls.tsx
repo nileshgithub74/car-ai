@@ -31,6 +31,7 @@ export const CarFilterControls = ({
 }: {
   filters: Filters;
   currentFilters: CurrentFilters;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onFilterChange: (filterName: string, value: any) => void;
   onClearFilter: (filterName: string) => void;
 }) => {

@@ -127,9 +127,11 @@ export const CarFilters = ({ filters }: { filters: Filters }) => {
     searchParams,
     filters.priceRange.min,
     filters.priceRange.max,
+    router,
   ]);
 
   // Handle filter changes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFilterChange = (filterName: string, value: any) => {
     switch (filterName) {
       case "make":

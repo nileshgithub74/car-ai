@@ -198,7 +198,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
       const filePath = `${folderPath}/${fileName}`;
 
       // Upload the file buffer directly
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("car-images")
         .upload(filePath, imageBuffer, {
           contentType: `image/${fileExtension}`,
@@ -233,7 +233,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
     const priceString = numericPrice.toFixed(2);
 
     // Add the car to the database
-    const car = await db.car.create({
+    await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
         make: carData.make,
@@ -269,7 +269,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
 export async function getCars(search: string = "") {
   try {
     // Build where conditions
-    let where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {};
 
     // Add search filter
     if (search) {
@@ -290,7 +290,7 @@ export async function getCars(search: string = "") {
       serializeCarData({
         ...car,
         price: Number(car.price),
-      } as any)
+      })
     );
 
     return {

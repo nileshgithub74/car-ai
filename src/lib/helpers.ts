@@ -12,6 +12,7 @@ export interface Car {
   description?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

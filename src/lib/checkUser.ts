@@ -1,4 +1,4 @@
-import { currentUser, EmailAddress } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { db } from "./prisma";
 
 export const checkUser = async () => {

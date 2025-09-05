@@ -7,6 +7,7 @@ import { request } from "@arcjet/next";
 
 
 // Function to serialize car data
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function serializeCarData(car: any) {
   return {
     ...car,

@@ -21,6 +21,7 @@ export default async function ReservationsPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-6xl mb-6 gradient-title">Your Reservations</h1>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <ReservationsList initialData={reservationsResult as any} />
     </div>
   );

@@ -21,6 +21,7 @@ export default async function SavedCarsPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-6xl mb-6 gradient-title">Your Saved Cars</h1>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <SavedCarsList initialData={savedCarsResult as any} />
     </div>
   );

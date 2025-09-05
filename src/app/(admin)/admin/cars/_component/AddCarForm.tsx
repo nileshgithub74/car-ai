@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Camera, ImagePlus, Loader2, X, Upload } from "lucide-react";
+import { Camera, Loader2, X, Upload } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { addCar, processCarImageWithAI } from "@/action/cars";
 import useFetch from "@/hooks/use-fetch";
-import Image from "next/image";
 
 // Predefined options
 const fuelTypes = ["Petrol", "Diesel", "Electric", "Hybrid", "Plug-in Hybrid"];
@@ -68,6 +68,24 @@ const carFormSchema = z.object({
   featured: z.boolean().default(false),
   // Images are handled separately
 });
+
+interface ProcessImageResult {
+  success?: boolean;
+  data?: CarDetails;
+}
+
+interface CarDetails {
+  make: string;
+  model: string;
+  year: number;
+  color?: string;
+  bodyType?: string;
+  fuelType?: string;
+  transmission?: string;
+  price?: number;
+  mileage?: number;
+  description?: string;
+}
 
 export const AddCarForm = () => {
   const router = useRouter();
@@ -137,23 +155,21 @@ export const AddCarForm = () => {
 
   // Handle successful AI processing
   useEffect(() => {
-    const res = processImageResult as
-      | { success?: boolean; data?: any }
-      | undefined;
+    const res = processImageResult as ProcessImageResult | undefined;
     if (res?.success && res.data) {
-      const carDetails = res.data as any;
+      const carDetails = res.data;
 
       // Update form with AI results
-      setValue("make", carDetails.make);
-      setValue("model", carDetails.model);
-      setValue("year", carDetails.year.toString());
-      setValue("color", carDetails.color);
-      setValue("bodyType", carDetails.bodyType);
-      setValue("fuelType", carDetails.fuelType);
-      setValue("price", carDetails.price);
-      setValue("mileage", carDetails.mileage);
-      setValue("transmission", carDetails.transmission);
-      setValue("description", carDetails.description);
+      setValue("make", carDetails.make || "");
+      setValue("model", carDetails.model || "");
+      setValue("year", carDetails.year?.toString() || "");
+      setValue("color", carDetails.color || "");
+      setValue("bodyType", carDetails.bodyType || "");
+      setValue("fuelType", carDetails.fuelType || "");
+      setValue("price", carDetails.price?.toString() || "");
+      setValue("mileage", carDetails.mileage?.toString() || "");
+      setValue("transmission", carDetails.transmission || "");
+      setValue("description", carDetails.description || "");
 
       // Add the image to the uploaded images
       const reader = new FileReader();
@@ -168,9 +184,7 @@ export const AddCarForm = () => {
       }
 
       toast.success("Successfully extracted car details", {
-        description: `Detected ${carDetails.year} ${carDetails.make} ${
-          carDetails.model
-        } with ${Math.round(carDetails.confidence * 100)}% confidence`,
+        description: `Detected ${carDetails.year} ${carDetails.make} ${carDetails.model}`,
       });
 
       // Switch to manual tab for the user to review and fill in missing details
@@ -283,7 +297,7 @@ export const AddCarForm = () => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: z.infer<typeof carFormSchema>) => {
     // Check if images are uploaded
     if (uploadedImages.length === 0) {
       setImageError("Please upload at least one image");
@@ -547,10 +561,8 @@ export const AddCarForm = () => {
                   <Textarea
                     id="description"
                     {...register("description")}
-                    placeholder="Enter detailed description of the car..."
-                    className={`min-h-32 ${
-                      errors.description ? "border-red-500" : ""
-                    }`}
+                    placeholder="Enter car&apos;s description"
+                    className={errors.description ? "border-red-500" : ""}
                   />
                   {errors.description && (
                     <p className="text-xs text-red-500">
@@ -682,9 +694,11 @@ export const AddCarForm = () => {
                 <div className="border-2 border-dashed rounded-lg p-6 text-center">
                   {imagePreview ? (
                     <div className="flex flex-col items-center">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Car preview"
+                        width={400}
+                        height={224}
                         className="max-h-56 max-w-full object-contain mb-4"
                       />
                       <div className="flex gap-2">
@@ -752,7 +766,7 @@ export const AddCarForm = () => {
                   <h3 className="font-medium mb-2">How it works</h3>
                   <ol className="space-y-2 text-sm text-gray-600 list-decimal pl-4">
                     <li>Upload a clear image of the car</li>
-                    <li>Click "Extract Details" to analyze with Gemini AI</li>
+                    <li>Click &quot;Extract Details&quot; to analyze with Gemini AI</li>
                     <li>Review the extracted information</li>
                     <li>Fill in any missing details manually</li>
                     <li>Add the car to your inventory</li>

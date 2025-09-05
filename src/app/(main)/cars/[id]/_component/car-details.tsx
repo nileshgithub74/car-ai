@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs";
-import { AlertCircle, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import {
   Car,
   Fuel,
@@ -441,6 +441,7 @@ export function CarDetails({ car, testDriveInfo }: { car: Car; testDriveInfo: Te
               <div className="space-y-2">
                 {testDriveInfo.dealership?.workingHours
                   ? testDriveInfo.dealership.workingHours
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       .sort((a: any, b: any) => {
                         const days = [
                           "MONDAY",
@@ -455,6 +456,7 @@ export function CarDetails({ car, testDriveInfo }: { car: Car; testDriveInfo: Te
                           days.indexOf(a.dayOfWeek) - days.indexOf(b.dayOfWeek)
                         );
                       })
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       .map((day: any) => (
                         <div
                           key={day.dayOfWeek}

@@ -4,8 +4,36 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
+interface DealershipInfo {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  workingHours: Record<string, { start: string; end: string; } | null>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserInfo {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface WorkingHour {
+  dayOfWeek: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  openTime: string;
+  closeTime: string;
+  isOpen: boolean;
+}
+
 // Get dealership info with working hours
-export async function getDealershipInfo(): Promise<{ success: boolean; data?: any }> {
+export async function getDealershipInfo(): Promise<{ success: boolean; data?: DealershipInfo }> {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -84,28 +112,40 @@ export async function getDealershipInfo(): Promise<{ success: boolean; data?: an
     }
 
     // Format the data
+    const formattedDealership: DealershipInfo = {
+      id: dealership.id,
+      name: dealership.name,
+      address: dealership.address,
+      phone: dealership.phone,
+      email: dealership.email,
+      workingHours: dealership.workingHours.reduce((acc, hour) => {
+        if (hour.isOpen) {
+          acc[hour.dayOfWeek] = {
+            start: hour.openTime,
+            end: hour.closeTime,
+          };
+        } else {
+          acc[hour.dayOfWeek] = null;
+        }
+        return acc;
+      }, {} as Record<string, { start: string; end: string; } | null>),
+      createdAt: dealership.createdAt.toISOString(),
+      updatedAt: dealership.updatedAt.toISOString(),
+    };
+
     return {
       success: true,
-      data: {
-        ...dealership,
-        createdAt: dealership.createdAt.toISOString(),
-        updatedAt: dealership.updatedAt.toISOString(),
-      },
+      data: formattedDealership,
     };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching dealership info:", error);
     return { success: false, data: undefined };
   }
 }
 
 // Save working hours
 export async function saveWorkingHours(
-  workingHours: Array<{
-    dayOfWeek: string;
-    openTime: string;
-    closeTime: string;
-    isOpen: boolean;
-  }>
+  workingHours: WorkingHour[]
 ): Promise<{ success: boolean }> {
   try {
     const { userId } = await auth();
@@ -136,7 +176,7 @@ export async function saveWorkingHours(
     for (const hour of workingHours) {
       await db.workingHour.create({
         data: {
-          dayOfWeek: hour.dayOfWeek as any,
+          dayOfWeek: hour.dayOfWeek,
           openTime: hour.openTime,
           closeTime: hour.closeTime,
           isOpen: hour.isOpen,
@@ -153,12 +193,13 @@ export async function saveWorkingHours(
       success: true,
     };
   } catch (error: unknown) {
+    console.error("Error saving working hours:", error);
     return { success: false };
   }
 }
 
 // Get all users
-export async function getUsers(): Promise<{ success: boolean; data?: any[] }> {
+export async function getUsers(): Promise<{ success: boolean; data?: UserInfo[] }> {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -180,12 +221,17 @@ export async function getUsers(): Promise<{ success: boolean; data?: any[] }> {
     return {
       success: true,
       data: users.map((user) => ({
-        ...user,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       })),
     };
   } catch (error: unknown) {
+    console.error("Error fetching users:", error);
     return { success: false, data: [] };
   }
 }
@@ -221,6 +267,7 @@ export async function updateUserRole(
       success: true,
     };
   } catch (error: unknown) {
+    console.error("Error updating user role:", error);
     return { success: false };
   }
 }

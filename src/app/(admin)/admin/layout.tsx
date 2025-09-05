@@ -1,4 +1,4 @@
-import { getadmin } from "@/action/admin";
+import { getAdmin } from "@/action/admin";
 import Header from "@/components/ui/Header";
 import { notFound } from "next/navigation";
 import React, { ReactNode } from "react";
@@ -10,7 +10,7 @@ type Props = {
 };
 
 const AdminLayout: React.FC<Props> = async ({ children }) => {
-  const admin = await getadmin();
+  const admin = await getAdmin();
 
   if (!admin.authorized) {
     return notFound();

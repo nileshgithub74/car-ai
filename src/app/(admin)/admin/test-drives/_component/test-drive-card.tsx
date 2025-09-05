@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Clock, User, Car, Phone, Mail, AlertCircle } from "lucide-react";
+// import { useState } from "react";
+import Image from "next/image";
+import { Calendar, Clock, User, Phone, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ type TestDriveBooking = {
     year: number;
     images: string[];
   };
-  user: {
+  user?: {
     id: string;
     name: string | null;
     email: string;
@@ -50,7 +51,7 @@ export const TestDriveCard = ({
   cancelError,
   renderStatusSelector,
 }: TestDriveCardProps) => {
-  const [showDetails, setShowDetails] = useState(false);
+  // const [showDetails, setShowDetails] = useState(false);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -110,13 +111,13 @@ export const TestDriveCard = ({
               <User className="h-4 w-4 text-gray-600" />
             </div>
             <div>
-              <p className="font-medium">{booking.user.name || "Unnamed User"}</p>
+              <p className="font-medium">{booking.user?.name || "Unnamed User"}</p>
               <div className="flex items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
                   <Mail className="h-3 w-3" />
-                  {booking.user.email}
+                  {booking.user?.email || "No email"}
                 </div>
-                {booking.user.phone && (
+                {booking.user?.phone && (
                   <div className="flex items-center gap-1">
                     <Phone className="h-3 w-3" />
                     {booking.user.phone}
@@ -129,9 +130,11 @@ export const TestDriveCard = ({
           {/* Car Image */}
           {booking.car.images && booking.car.images.length > 0 && (
             <div className="w-full h-32 rounded-lg overflow-hidden bg-gray-100">
-              <img
+              <Image
                 src={booking.car.images[0]}
                 alt={`${booking.car.make} ${booking.car.model}`}
+                width={400}
+                height={128}
                 className="w-full h-full object-cover"
               />
             </div>

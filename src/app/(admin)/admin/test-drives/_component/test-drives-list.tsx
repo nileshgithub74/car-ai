@@ -51,7 +51,7 @@ type TestDriveBooking = {
 
 export const TestDrivesList = () => {
   const [search, setSearch] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Custom hooks for API calls
   const {
@@ -77,8 +77,8 @@ export const TestDrivesList = () => {
 
   // Initial fetch and refetch on search/filter changes
   useEffect(() => {
-    fetchTestDrives({ search, status: statusFilter });
-  }, [search, statusFilter]);
+    fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
+  }, [search, statusFilter, fetchTestDrives]);
 
   // Handle errors
   useEffect(() => {
@@ -100,18 +100,18 @@ export const TestDrivesList = () => {
     
     if (updateRes?.success) {
       toast.success("Test drive status updated successfully");
-      fetchTestDrives({ search, status: statusFilter });
+      fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
     }
     if (cancelRes?.success) {
       toast.success("Test drive cancelled successfully");
-      fetchTestDrives({ search, status: statusFilter });
+      fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
     }
-  }, [updateResult, cancelResult]);
+  }, [updateResult, cancelResult, search, statusFilter, fetchTestDrives]);
 
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    fetchTestDrives({ search, status: statusFilter });
+    fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
   };
 
   // Handle status update
@@ -141,7 +141,7 @@ export const TestDrivesList = () => {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
@@ -201,7 +201,7 @@ export const TestDrivesList = () => {
                 No test drives found
               </h3>
               <p className="text-gray-500 mb-4">
-                {statusFilter || search
+                {(statusFilter !== "all" && statusFilter) || search
                   ? "No test drives match your search criteria"
                   : "There are no test drive bookings yet."}
               </p>
@@ -248,4 +248,3 @@ export const TestDrivesList = () => {
     </div>
   );
 };
-

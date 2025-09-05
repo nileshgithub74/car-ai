@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { format, parseISO } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,13 +57,36 @@ interface Car {
   make: string;
   model: string;
   year: number;
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+interface UserTestDrive {
+  id?: string;
+  status?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+}
+
+interface WorkingHours {
+  [key: string]: { start: string; end: string; } | null;
+}
+
+interface Dealership {
+  id: string;
+  name: string;
+  workingHours: WorkingHours;
+}
+
+interface ExistingBooking {
+  id: string;
+  scheduledDate: string;
+  scheduledTime: string;
 }
 
 interface TestDriveInfo {
-  userTestDrive?: any;
-  dealership?: any;
-  existingBookings?: any[];
+  userTestDrive?: UserTestDrive;
+  dealership?: Dealership;
+  existingBookings?: ExistingBooking[];
 }
 
 export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?: TestDriveInfo }) {
@@ -87,7 +111,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
     watch,
     setValue,
     reset,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(testDriveSchema),
     defaultValues: {
@@ -99,7 +123,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
 
   // Get dealership and booking information
   const dealership = testDriveInfo?.dealership;
-  const existingBookings = testDriveInfo?.existingBookings || [];
+  const existingBookings = useMemo(() => testDriveInfo?.existingBookings || [], [testDriveInfo?.existingBookings]);
 
   // Watch date field to update available time slots
   const selectedDate = watch("date");
@@ -114,6 +138,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
 
   // Handle successful booking
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = bookingResult as { success?: boolean; data?: any } | undefined;
     if (result?.success) {
       setBookingDetails({
@@ -150,18 +175,16 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
     const selectedDayOfWeek = format(selectedDate, "EEEE").toUpperCase();
 
     // Find working hours for the selected day
-    const daySchedule = dealership.workingHours.find(
-      (day: any) => day.dayOfWeek === selectedDayOfWeek
-    );
+    const daySchedule = dealership.workingHours[selectedDayOfWeek];
 
-    if (!daySchedule || !daySchedule.isOpen) {
+    if (!daySchedule || !daySchedule.start || !daySchedule.end) {
       setAvailableTimeSlots([]);
       return;
     }
 
     // Parse opening and closing hours
-    const openHour = parseInt(daySchedule.openTime.split(":")[0]);
-    const closeHour = parseInt(daySchedule.closeTime.split(":")[0]);
+    const openHour = parseInt(daySchedule.start.split(":")[0]);
+    const closeHour = parseInt(daySchedule.end.split(":")[0]);
 
     // Generate time slots (every hour)
     const slots = [];
@@ -171,10 +194,10 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
 
       // Check if this slot is already booked
       const isBooked = existingBookings.some((booking) => {
-        const bookingDate = booking.date;
+        const bookingDate = booking.scheduledDate;
         return (
           bookingDate === format(selectedDate, "yyyy-MM-dd") &&
-          (booking.startTime === startTime || booking.endTime === endTime)
+          (booking.scheduledTime === startTime || booking.scheduledTime === endTime)
         );
       });
 
@@ -192,7 +215,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
 
     // Clear time slot selection when date changes
     setValue("timeSlot", "");
-  }, [selectedDate]);
+  }, [selectedDate, dealership?.workingHours, existingBookings, setValue]);
 
   // Create a function to determine which days should be disabled
   const isDayDisabled = (day: Date) => {
@@ -205,15 +228,14 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
     const dayOfWeek = format(day, "EEEE").toUpperCase();
 
     // Find working hours for the day
-    const daySchedule = dealership?.workingHours?.find(
-      (schedule: any) => schedule.dayOfWeek === dayOfWeek
-    );
+    const daySchedule = dealership?.workingHours[dayOfWeek];
 
     // Disable if dealership is closed on this day
-    return !daySchedule || !daySchedule.isOpen;
+    return !daySchedule || !daySchedule.start || !daySchedule.end;
   };
 
   // Submit handler
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = async (data: any) => {
     const selectedSlot = availableTimeSlots.find(
       (slot) => slot.id === data.timeSlot
@@ -248,10 +270,12 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
             <h2 className="text-xl font-bold mb-4">Car Details</h2>
 
             <div className="aspect-video rounded-lg overflow-hidden relative mb-4">
-              {car.images && car.images.length > 0 ? (
-                <img
+              {car.images && Array.isArray(car.images) && car.images.length > 0 ? (
+                <Image
                   src={car.images[0]}
                   alt={`${car.year} ${car.make} ${car.model}`}
+                  width={600}
+                  height={337}
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -266,14 +290,14 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
             </h3>
 
             <div className="mt-2 text-xl font-bold text-blue-600">
-              ${car.price.toLocaleString()}
+              ${car.price ? car.price.toLocaleString() : 'Price not available'}
             </div>
 
             <div className="mt-4 text-sm text-gray-500">
               <div className="flex justify-between py-1 border-b">
                 <span>Mileage</span>
                 <span className="font-medium">
-                  {car.mileage.toLocaleString()} miles
+                  {car.mileage ? car.mileage.toLocaleString() : 'N/A'} miles
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b">
@@ -305,15 +329,18 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
                 {dealership?.name || "Vehiql Motors"}
               </p>
               <p className="text-gray-600 mt-1">
-                {dealership?.address || "Address not available"}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.address || "Address not available"}
               </p>
               <p className="text-gray-600 mt-3">
                 <span className="font-medium">Phone:</span>{" "}
-                {dealership?.phone || "Not available"}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.phone || "Not available"}
               </p>
               <p className="text-gray-600">
                 <span className="font-medium">Email:</span>{" "}
-                {dealership?.email || "Not available"}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.email || "Not available"}
               </p>
             </div>
           </CardContent>
@@ -459,7 +486,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start">
                   <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                  Bring your driver's license for verification
+                  Bring your driver&apos;s license for verification
                 </li>
                 <li className="flex items-start">
                   <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
@@ -512,7 +539,7 @@ export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?
               </div>
 
               <div className="mt-4 bg-blue-50 p-3 rounded text-sm text-blue-700">
-                Please arrive 10 minutes early with your driver's license.
+                Please arrive 10 minutes early with your driver&apos;s license.
               </div>
             </div>
           )}
