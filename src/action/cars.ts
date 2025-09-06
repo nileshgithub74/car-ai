@@ -8,26 +8,20 @@ import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 import { serializeCarData } from "@/lib/helpers";
-import type { CarStatus } from "@/generated/prisma";
 
 // Function to convert File to base64
-async function fileToBase64(file: File): Promise<string> {
+async function fileToBase64(file: File) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   return buffer.toString("base64");
 }
 
 // Gemini AI integration for car image processing
-export async function processCarImageWithAI(
-  file: File
-): Promise<
-  | { success: true; data: Record<string, unknown> }
-  | { success: false; error: string }
-> {
+export async function processCarImageWithAI(file: File) {
   try {
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {
-      return { success: false, error: "Gemini API key is not configured" };
+      throw new Error("Gemini API key is not configured");
     }
 
     // Initialize Gemini API
@@ -126,35 +120,14 @@ export async function processCarImageWithAI(
         error: "Failed to parse AI response",
       };
     }
-  } catch (error: unknown) {
-    console.error(error);
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Gemini API error:" + message);
+  } catch (error) {
+    console.error();
+    throw new Error("Gemini API error:" + (error as Error).message);
   }
 }
 
 // Add a car to the database with images
-type NewCarInput = {
-  carData: {
-    id?: string;
-    make: string;
-    model: string;
-    year: number;
-    price: number | string;
-    mileage: number;
-    color: string;
-    fuelType: string;
-    transmission: string;
-    bodyType: string;
-    seats?: number | null;
-    description: string;
-    status?: CarStatus;
-    featured?: boolean;
-  };
-  images: string[];
-};
-
-export async function addCar({ carData, images }: NewCarInput): Promise<{ success: true }> {
+export async function addCar({ carData, images }: { carData: any; images: string[] }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -198,7 +171,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
       const filePath = `${folderPath}/${fileName}`;
 
       // Upload the file buffer directly
-      const { error } = await supabase.storage
+      const { data, error } = await (await supabase).storage
         .from("car-images")
         .upload(filePath, imageBuffer, {
           contentType: `image/${fileExtension}`,
@@ -219,33 +192,20 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
       throw new Error("No valid images were uploaded");
     }
 
-    // Normalize and validate price
-    const rawPrice = carData.price;
-    const numericPrice =
-      typeof rawPrice === "number"
-        ? rawPrice
-        : parseFloat(String(rawPrice).replace(/[^0-9.]/g, ""));
-
-    if (!Number.isFinite(numericPrice)) {
-      throw new Error("Invalid price value");
-    }
-
-    const priceString = numericPrice.toFixed(2);
-
     // Add the car to the database
-    await db.car.create({
+    const car = await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
         make: carData.make,
         model: carData.model,
         year: carData.year,
-        price: priceString,
+        price: carData.price,
         mileage: carData.mileage,
         color: carData.color,
         fuelType: carData.fuelType,
         transmission: carData.transmission,
         bodyType: carData.bodyType,
-        seats: carData.seats ?? null,
+        seats: carData.seats,
         description: carData.description,
         status: carData.status,
         featured: carData.featured,
@@ -259,9 +219,8 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
     return {
       success: true,
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error adding car:" + message);
+  } catch (error) {
+    throw new Error("Error adding car:" + (error as Error).message);
   }
 }
 
@@ -269,7 +228,7 @@ export async function addCar({ carData, images }: NewCarInput): Promise<{ succes
 export async function getCars(search: string = "") {
   try {
     // Build where conditions
-    const where: Record<string, unknown> = {};
+    let where: any = {};
 
     // Add search filter
     if (search) {
@@ -286,28 +245,23 @@ export async function getCars(search: string = "") {
       orderBy: { createdAt: "desc" },
     });
 
-    const serializedCars = cars.map((car) =>
-      serializeCarData({
-        ...car,
-        price: Number(car.price),
-      })
-    );
+    const serializedCars = cars.map((car: any) => serializeCarData(car));
 
     return {
       success: true,
       data: serializedCars,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching cars:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: (error as Error).message,
     };
   }
 }
 
 // Delete a car by ID
-export async function deleteCar(id: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteCar(id: string) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -342,13 +296,13 @@ export async function deleteCar(id: string): Promise<{ success: boolean; error?:
           const pathMatch = url.pathname.match(/\/car-images\/(.*)/);
           return pathMatch ? pathMatch[1] : null;
         })
-        .filter((p): p is string => Boolean(p));
+        .filter(Boolean);
 
       // Delete files from storage if paths were extracted
       if (filePaths.length > 0) {
-        const { error } = await supabase.storage
+        const { error } = await (await supabase).storage
           .from("car-images")
-          .remove(filePaths);
+          .remove(filePaths.filter((path): path is string => path !== null));
 
         if (error) {
           console.error("Error deleting images:", error);
@@ -366,25 +320,22 @@ export async function deleteCar(id: string): Promise<{ success: boolean; error?:
     return {
       success: true,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error deleting car:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: (error as Error).message,
     };
   }
 }
 
 // Update car status or featured status
-export async function updateCarStatus(
-  id: string,
-  { status, featured }: { status?: CarStatus; featured?: boolean }
-): Promise<{ success: boolean; error?: string }> {
+export async function updateCarStatus(id: string, { status, featured }: { status?: any; featured?: any }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: any = {};
 
     if (status !== undefined) {
       updateData.status = status;
@@ -406,11 +357,11 @@ export async function updateCarStatus(
     return {
       success: true,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error updating car status:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: (error as Error).message,
     };
   }
 }

@@ -1,13 +1,16 @@
-import { useState } from "react";
+
+
+
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
-// Generic hook: T = response type, A = arguments tuple
 function useFetch<T, A extends unknown[]>(cb: (...args: A) => Promise<T>) {
   const [data, setData] = useState<T | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fn = async (...args: A): Promise<void> => {
+  // memoize fn so it doesn't change on every render
+  const fn = useCallback(async (...args: A): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -21,7 +24,7 @@ function useFetch<T, A extends unknown[]>(cb: (...args: A) => Promise<T>) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cb]);
 
   return { data, loading, error, fn, setData };
 }

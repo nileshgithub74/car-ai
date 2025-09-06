@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-import { serializeCarData, type Car } from "@/lib/helpers";
+import { serializeCarData } from "@/lib/helpers";
 
 /**
  * Books a test drive for a car
@@ -77,12 +77,11 @@ export async function bookTestDrive({
       success: true,
       data: booking,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error booking test drive:", error);
-    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: message || "Failed to book test drive",
+      error: (error as Error).message || "Failed to book test drive",
     };
   }
 }
@@ -125,10 +124,7 @@ export async function getUserTestDrives() {
     const formattedBookings = bookings.map((booking) => ({
       id: booking.id,
       carId: booking.carId,
-      car: serializeCarData({
-        ...booking.car,
-        price: Number(booking.car.price),
-      } as Car),
+      car: serializeCarData(booking.car as any),
       bookingDate: booking.bookingDate.toISOString(),
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -142,12 +138,11 @@ export async function getUserTestDrives() {
       success: true,
       data: formattedBookings,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching test drives:", error);
-    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: message,
+      error: (error as Error).message,
     };
   }
 }
@@ -189,8 +184,8 @@ export async function cancelTestDrive(bookingId: string) {
       };
     }
 
-    // Check if user owns this booking or is admin
-    if (booking.userId !== user.id && user.role !== "ADMIN") {
+    // Check if user owns this booking
+    if (booking.userId !== user.id || user.role !== "ADMIN") {
       return {
         success: false,
         error: "Unauthorized to cancel this booking",
@@ -226,12 +221,11 @@ export async function cancelTestDrive(bookingId: string) {
       success: true,
       message: "Test drive cancelled successfully",
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error cancelling test drive:", error);
-    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: message,
+      error: (error as Error).message,
     };
   }
 }

@@ -39,7 +39,7 @@ export async function getAdminTestDrives({ search = "", status = "" }: { search?
     }
 
     // Build where conditions
-    const where: Record<string, unknown> = {};
+    let where: any = {};
 
     // Add status filter
     if (status) {
@@ -90,10 +90,7 @@ export async function getAdminTestDrives({ search = "", status = "" }: { search?
     const formattedBookings = bookings.map((booking) => ({
       id: booking.id,
       carId: booking.carId,
-      car: serializeCarData({
-        ...booking.car,
-        price: Number(booking.car.price),
-      }),
+      car: serializeCarData(booking.car as any),
       userId: booking.userId,
       user: booking.user,
       bookingDate: booking.bookingDate.toISOString(),
@@ -109,12 +106,11 @@ export async function getAdminTestDrives({ search = "", status = "" }: { search?
       success: true,
       data: formattedBookings,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching test drives:", error);
-    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: message,
+      error: (error as Error).message,
     };
   }
 }
@@ -151,6 +147,7 @@ export async function updateTestDriveStatus(bookingId: string, newStatus: string
       "CONFIRMED",
       "COMPLETED",
       "CANCELLED",
+      "NO_SHOW",
     ];
     if (!validStatuses.includes(newStatus)) {
       return {
@@ -162,7 +159,7 @@ export async function updateTestDriveStatus(bookingId: string, newStatus: string
     // Update status
     await db.testDriveBooking.update({
       where: { id: bookingId },
-      data: { status: newStatus as "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" },
+      data: { status: newStatus as any },
     });
 
     // Revalidate paths
@@ -173,9 +170,8 @@ export async function updateTestDriveStatus(bookingId: string, newStatus: string
       success: true,
       message: "Test drive status updated successfully",
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error updating test drive status:" + message);
+  } catch (error) {
+    throw new Error("Error updating test drive status:" + (error as Error).message);
   }
 }
 
@@ -242,8 +238,9 @@ export async function getDashboardData() {
     const cancelledTestDrives = testDrives.filter(
       (td) => td.status === "CANCELLED"
     ).length;
-    // Note: NO_SHOW status is not defined in the Prisma schema
-    const noShowTestDrives = 0;
+    const noShowTestDrives = testDrives.filter(
+      (td) => td.status === "NO_SHOW" as any
+    ).length;
 
     // Calculate test drive conversion rate
     const completedTestDriveCarIds = testDrives
@@ -281,12 +278,11 @@ export async function getDashboardData() {
         },
       },
     };
-  } catch (error: unknown) {
-    console.error("Error fetching dashboard data:", error);
-    const message = error instanceof Error ? error.message : String(error);
+  } catch (error) {
+    console.error("Error fetching dashboard data:", (error as Error).message);
     return {
       success: false,
-      error: message,
+      error: (error as Error).message,
     };
   }
 }

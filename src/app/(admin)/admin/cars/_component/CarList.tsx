@@ -128,7 +128,7 @@ export const CarsList = () => {
 
   // Handle toggle featured status
   const handleToggleFeatured = async (car: SerializedCar) => {
-    await updateCarStatusFn(car.id, { featured: !car.featured });
+    await updateCarStatusFn(car.id, { status: car.status, featured: !car.featured });
   };
 
   // Handle status change
@@ -136,7 +136,7 @@ export const CarsList = () => {
     car: SerializedCar,
     newStatus: "AVAILABLE" | "UNAVAILABLE" | "SOLD"
   ) => {
-    await updateCarStatusFn(car.id, { status: newStatus });
+    await updateCarStatusFn(car.id, { status: newStatus, featured: car.featured });
   };
 
   // Get status badge color

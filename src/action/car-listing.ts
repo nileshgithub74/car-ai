@@ -66,9 +66,8 @@ export async function getCarFilters() {
         },
       },
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error fetching car filters:" + message);
+  } catch (error) {
+    throw new Error("Error fetching car filters:" + (error as Error).message);
   }
 }
 
@@ -86,6 +85,17 @@ export async function getCars({
   sortBy = "newest", // Options: newest, priceAsc, priceDesc
   page = 1,
   limit = 6,
+}: {
+  search?: string;
+  make?: string;
+  bodyType?: string;
+  fuelType?: string;
+  transmission?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
+  page?: number;
+  limit?: number;
 }) {
   try {
     // Get current user if authenticated
@@ -99,8 +109,7 @@ export async function getCars({
     }
 
     // Build where conditions
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {
+    let where: any = {
       status: "AVAILABLE",
     };
 
@@ -120,11 +129,11 @@ export async function getCars({
 
     // Add price range
     where.price = {
-      gte: minPrice,
+      gte: (parseFloat(minPrice.toString()) || 0).toString(),
     };
 
     if (maxPrice && maxPrice < Number.MAX_SAFE_INTEGER) {
-      where.price.lte = maxPrice;
+      where.price.lte = parseFloat(maxPrice.toString()).toString();
     }
 
     // Calculate pagination
@@ -164,15 +173,12 @@ export async function getCars({
         select: { carId: true },
       });
 
-      wishlisted = new Set(savedCars.map((saved) => saved.carId));
+      wishlisted = new Set(savedCars.map((saved: any) => saved.carId));
     }
 
     // Serialize and check wishlist status
     const serializedCars = cars.map((car) =>
-      serializeCarData({
-        ...car,
-        price: Number(car.price),
-      }, wishlisted.has(car.id))
+      serializeCarData(car as any, wishlisted.has(car.id))
     );
 
     return {
@@ -185,9 +191,8 @@ export async function getCars({
         pages: Math.ceil(totalCars / limit),
       },
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error fetching cars:" + message);
+  } catch (error) {
+    throw new Error("Error fetching cars:" + (error as Error).message);
   }
 }
 
@@ -260,9 +265,8 @@ export async function toggleSavedCar(carId: string) {
       saved: true,
       message: "Car added to favorites",
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error toggling saved car:" + message);
+  } catch (error) {
+    throw new Error("Error toggling saved car:" + (error as Error).message);
   }
 }
 
@@ -299,7 +303,7 @@ export async function getCarById(carId: string) {
       const savedCar = await db.userSavedCars.findUnique({
         where: {
           userId_carId: {
-            userId: dbUser!.id,
+            userId: dbUser.id,
             carId,
           },
         },
@@ -340,10 +344,7 @@ export async function getCarById(carId: string) {
     return {
       success: true,
       data: {
-        ...serializeCarData({
-          ...car,
-          price: Number(car.price),
-        }, isWishlisted),
+        ...serializeCarData(car as any, isWishlisted),
         testDriveInfo: {
           userTestDrive,
           dealership: dealership
@@ -361,9 +362,8 @@ export async function getCarById(carId: string) {
         },
       },
     };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error fetching car details:" + message);
+  } catch (error) {
+    throw new Error("Error fetching car details:" + (error as Error).message);
   }
 }
 
@@ -402,21 +402,17 @@ export async function getSavedCars() {
     });
 
     // Extract and format car data
-    const cars = savedCars.map((saved) => serializeCarData({
-      ...saved.car,
-      price: Number(saved.car.price),
-    }));
+    const cars = savedCars.map((saved: any) => serializeCarData(saved.car));
 
     return {
       success: true,
       data: cars,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching saved cars:", error);
-    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: message,
+      error: (error as Error).message,
     };
   }
 }

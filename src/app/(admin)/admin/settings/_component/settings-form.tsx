@@ -1,565 +1,568 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { format, parseISO, isPast } from "date-fns";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
-  Save,
-  Clock,
+  Calendar as CalendarIcon,
+  Car,
+  CheckCircle2,
   Loader2,
-  Users,
-  Shield,
-  UserX,
-  CheckCircle,
-  Search,
 } from "lucide-react";
-
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { bookTestDrive } from "@/action/test-drive";
+import { toast } from "sonner";
 import useFetch from "@/hooks/use-fetch";
-import {
-  getDealershipInfo,
-  saveWorkingHours,
-  getUsers,
-  updateUserRole,
-} from "@/action/settings";
+import { Card, CardContent } from "@/components/ui/card";
 
-// Day names for display
-const DAYS = [
-  { value: "MONDAY", label: "Monday" },
-  { value: "TUESDAY", label: "Tuesday" },
-  { value: "WEDNESDAY", label: "Wednesday" },
-  { value: "THURSDAY", label: "Thursday" },
-  { value: "FRIDAY", label: "Friday" },
-  { value: "SATURDAY", label: "Saturday" },
-  { value: "SUNDAY", label: "Sunday" },
-];
+// Define Zod schema for form validation
+const testDriveSchema = z.object({
+  date: z.date({
+    message: "Please select a date for your test drive",
+  }),
+  timeSlot: z.string({
+    message: "Please select a time slot",
+  }),
+  notes: z.string().optional(),
+});
 
-type WorkingHour = {
-  dayOfWeek: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
-  openTime: string;
-  closeTime: string;
-  isOpen: boolean;
-};
-
-// type DealershipData = {
-//   id: string;
-//   name: string;
-//   address: string;
-//   phone: string;
-//   email: string;
-//   workingHours: Record<string, { start: string; end: string; } | null>;
-// };
-
-type UsersResponseUser = {
+interface Car {
   id: string;
-  name: string | null;
-  email: string;
-  role: "USER" | "ADMIN";
-  imageUrl: string | null;
-};
+  make: string;
+  model: string;
+  year: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
 
-export const SettingsForm = () => {
-  const [workingHours, setWorkingHours] = useState<WorkingHour[]>(
-    DAYS.map((day) => ({
-      dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
-      openTime: "09:00",
-      closeTime: "18:00",
-      isOpen: day.value !== "SUNDAY",
-    }))
-  );
+interface UserTestDrive {
+  id?: string;
+  status?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+}
 
-  const [userSearch, setUserSearch] = useState<string>("");
-  const [confirmAdminDialog, setConfirmAdminDialog] = useState<boolean>(false);
-  const [userToPromote, setUserToPromote] = useState<UsersResponseUser | null>(null);
-  const [confirmRemoveDialog, setConfirmRemoveDialog] = useState<boolean>(false);
-  const [userToDemote, setUserToDemote] = useState<UsersResponseUser | null>(null);
+interface WorkingHours {
+  [key: string]: { start: string; end: string; } | null;
+}
+
+interface Dealership {
+  id: string;
+  name: string;
+  workingHours: WorkingHours;
+}
+
+interface ExistingBooking {
+  id: string;
+  scheduledDate: string;
+  scheduledTime: string;
+}
+
+interface TestDriveInfo {
+  userTestDrive?: UserTestDrive;
+  dealership?: Dealership;
+  existingBookings?: ExistingBooking[];
+}
+
+export function TestDriveForm({ car, testDriveInfo }: { car: Car; testDriveInfo?: TestDriveInfo }) {
+  const router = useRouter();
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<Array<{
+    id: string;
+    label: string;
+    startTime: string;
+    endTime: string;
+  }>>([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState<{
+    date: string;
+    timeSlot: string;
+    notes?: string;
+  } | null>(null);
+
+  // Initialize react-hook-form with zod resolver
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(testDriveSchema),
+    defaultValues: {
+      date: undefined,
+      timeSlot: undefined,
+      notes: "",
+    },
+  });
+
+  // Get dealership and booking information
+  const dealership = testDriveInfo?.dealership;
+  const existingBookings = useMemo(() => testDriveInfo?.existingBookings || [], [testDriveInfo?.existingBookings]);
+
+  // Watch date field to update available time slots
+  const selectedDate = watch("date");
 
   // Custom hooks for API calls
   const {
-    fn: fetchDealershipInfo,
-    data: settingsData,
-    error: settingsError,
-  } = useFetch(getDealershipInfo);
+    loading: bookingInProgress,
+    fn: bookTestDriveFn,
+    data: bookingResult,
+    error: bookingError,
+  } = useFetch(bookTestDrive);
 
-  const {
-    loading: savingHours,
-    fn: saveHours,
-    data: saveResult,
-    error: saveError,
-  } = useFetch(saveWorkingHours);
-
-  const {
-    loading: fetchingUsers,
-    fn: fetchUsers,
-    data: usersData,
-    error: usersError,
-  } = useFetch(getUsers);
-
-  const {
-    loading: updatingRole,
-    fn: updateRole,
-    data: updateRoleResult,
-    error: updateRoleError,
-  } = useFetch(updateUserRole);
-
-  // Fetch settings and users on component mount
+  // Handle successful booking
   useEffect(() => {
-    fetchDealershipInfo();
-    fetchUsers();
-  }, [fetchDealershipInfo, fetchUsers]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = bookingResult as { success?: boolean; data?: any } | undefined;
+    if (result?.success) {
+      setBookingDetails({
+        date: format(result?.data?.bookingDate, "EEEE, MMMM d, yyyy"),
+        timeSlot: `${format(
+          parseISO(`2022-01-01T${result?.data?.startTime}`),
+          "h:mm a"
+        )} - ${format(
+          parseISO(`2022-01-01T${result?.data?.endTime}`),
+          "h:mm a"
+        )}`,
+        notes: result?.data?.notes,
+      });
+      setShowConfirmation(true);
 
-  // Set working hours when settings data is fetched
+      // Reset form
+      reset();
+    }
+  }, [bookingResult, reset]);
+
+  // Handle booking error
   useEffect(() => {
-    if (settingsData?.success && settingsData.data) {
-      const dealership = settingsData.data;
+    if (bookingError) {
+      toast.error(
+        bookingError.message || "Failed to book test drive. Please try again."
+      );
+    }
+  }, [bookingError]);
 
-      // Map the working hours from Record to WorkingHour array
-      if (dealership.workingHours && Object.keys(dealership.workingHours).length > 0) {
-        const mappedHours = DAYS.map((day) => {
-          // Find matching working hour from Record
-          const hourData = dealership.workingHours[day.value];
+  // Update available time slots when date changes
+  useEffect(() => {
+    if (!selectedDate || !dealership?.workingHours) return;
 
-          if (hourData) {
-                      return {
-            dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
-            openTime: hourData.start,
-            closeTime: hourData.end,
-            isOpen: true,
-          };
-          }
+    const selectedDayOfWeek = format(selectedDate, "EEEE").toUpperCase();
 
-          // Default values if no working hour is found or if it's null (closed)
-          return {
-            dayOfWeek: day.value as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
-            openTime: "09:00",
-            closeTime: "18:00",
-            isOpen: false,
-          };
+    // Find working hours for the selected day
+    const daySchedule = dealership.workingHours[selectedDayOfWeek];
+
+    if (!daySchedule || !daySchedule.start || !daySchedule.end) {
+      setAvailableTimeSlots([]);
+      return;
+    }
+
+    // Parse opening and closing hours
+    const openHour = parseInt(daySchedule.start.split(":")[0]);
+    const closeHour = parseInt(daySchedule.end.split(":")[0]);
+
+    // Generate time slots (every hour)
+    const slots = [];
+    const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
+    const isToday = format(selectedDate, 'yyyy-MM-dd') === today;
+
+    for (let hour = openHour; hour < closeHour; hour++) {
+      const startTime = `${hour.toString().padStart(2, "0")}:00`;
+      const endTime = `${(hour + 1).toString().padStart(2, "0")}:00`;
+
+      // Check if this slot is already booked
+      const isBooked = existingBookings.some((booking) => {
+        const bookingDate = booking.scheduledDate;
+        return (
+          bookingDate === format(selectedDate, "yyyy-MM-dd") &&
+          booking.scheduledTime === startTime
+        );
+      });
+
+      // Check if the slot is in the past on the current day
+      const slotDateTime = new Date(selectedDate);
+      slotDateTime.setHours(hour, 0, 0, 0);
+      const isPastSlot = isToday && isPast(slotDateTime);
+
+      if (!isBooked && !isPastSlot) {
+        slots.push({
+          id: `${startTime}-${endTime}`,
+          label: `${format(
+            parseISO(`2022-01-01T${startTime}`),
+            "h:mm a"
+          )} - ${format(parseISO(`2022-01-01T${endTime}`), "h:mm a")}`,
+          startTime,
+          endTime,
         });
-
-        setWorkingHours(mappedHours);
       }
     }
-  }, [settingsData]);
 
-  // Handle errors
-  useEffect(() => {
-    if (settingsError) {
-      toast.error("Failed to load dealership settings");
+    setAvailableTimeSlots(slots);
+
+    // Clear time slot selection when date changes
+    setValue("timeSlot", "");
+  }, [selectedDate, dealership?.workingHours, existingBookings, setValue]);
+
+  // Create a function to determine which days should be disabled
+  const isDayDisabled = (day: Date) => {
+    // Disable past dates, but allow today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (isPast(day) && format(day, 'yyyy-MM-dd') !== format(today, 'yyyy-MM-dd')) {
+        return true;
     }
 
-    if (saveError) {
-      toast.error(`Failed to save working hours: ${saveError.message}`);
-    }
+    // Get day of week
+    const dayOfWeek = format(day, "EEEE").toUpperCase();
 
-    if (usersError) {
-      toast.error("Failed to load users");
-    }
+    // Find working hours for the day
+    const daySchedule = dealership?.workingHours[dayOfWeek];
 
-    if (updateRoleError) {
-      toast.error(`Failed to update user role: ${updateRoleError.message}`);
-    }
-  }, [settingsError, saveError, usersError, updateRoleError]);
-
-  // Handle successful operations
-  useEffect(() => {
-    if (saveResult?.success) {
-      toast.success("Working hours saved successfully");
-      fetchDealershipInfo();
-    }
-
-    if (updateRoleResult?.success) {
-      toast.success("User role updated successfully");
-      fetchUsers();
-      setConfirmAdminDialog(false);
-      setConfirmRemoveDialog(false);
-    }
-  }, [saveResult, updateRoleResult, fetchUsers, fetchDealershipInfo]);
-
-  // Handle working hours change
-  const handleWorkingHourChange = (
-    index: number,
-    field: keyof WorkingHour,
-    value: WorkingHour[keyof WorkingHour]
-  ) => {
-    const updatedHours = [...workingHours];
-    updatedHours[index] = {
-      ...updatedHours[index],
-      [field]: value,
-    };
-    setWorkingHours(updatedHours);
+    // Disable if dealership is closed on this day
+    return !daySchedule || !daySchedule.start || !daySchedule.end;
   };
 
-  // Save working hours
-  const handleSaveHours = async () => {
-    await saveHours(workingHours);
+  // Submit handler
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onSubmit = async (data: any) => {
+    const selectedSlot = availableTimeSlots.find(
+      (slot) => slot.id === data.timeSlot
+    );
+
+    if (!selectedSlot) {
+      toast.error("Selected time slot is not available");
+      return;
+    }
+
+    await bookTestDriveFn({
+      carId: car.id,
+      bookingDate: format(data.date, "yyyy-MM-dd"),
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      notes: data.notes || "",
+    });
   };
 
-  // Make user admin
-  const handleMakeAdmin = async () => {
-    if (!userToPromote) return;
-    await updateRole(userToPromote.id, "ADMIN");
+  // Close confirmation handler
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    router.push(`/cars/${car.id}`);
   };
-
-  // Remove admin privileges
-  const handleRemoveAdmin = async () => {
-    if (!userToDemote) return;
-    await updateRole(userToDemote.id, "USER");
-  };
-
-  // Filter users by search term
-  const filteredUsers: UsersResponseUser[] = (usersData as
-    | { success?: boolean; data?: UsersResponseUser[] }
-    | undefined)?.success
-    ? ((usersData as { data?: UsersResponseUser[] }).data || []).filter((user) =>
-        (user.name || "").toLowerCase().includes(userSearch.toLowerCase()) ||
-        user.email.toLowerCase().includes(userSearch.toLowerCase())
-      )
-    : [];
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="hours">
-        <TabsList>
-          <TabsTrigger value="hours">
-            <Clock className="h-4 w-4 mr-2" />
-            Working Hours
-          </TabsTrigger>
-          <TabsTrigger value="admins">
-            <Shield className="h-4 w-4 mr-2" />
-            Admin Users
-          </TabsTrigger>
-        </TabsList>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Left Column - Car Summary */}
+      <div className="md:col-span-1">
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-xl font-bold mb-4">Car Details</h2>
 
-        <TabsContent value="hours" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Working Hours</CardTitle>
-              <CardDescription>
-                Set your dealership&apos;s working hours for each day of the week.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {DAYS.map((day, index) => (
-                  <div
-                    key={day.value}
-                    className="grid grid-cols-12 gap-4 items-center py-3 px-4 rounded-lg hover:bg-slate-50"
-                  >
-                    <div className="col-span-3 md:col-span-2">
-                      <div className="font-medium">{day.label}</div>
-                    </div>
+            <div className="aspect-video rounded-lg overflow-hidden relative mb-4">
+              {car.images && Array.isArray(car.images) && car.images.length > 0 ? (
+                <Image
+                  src={car.images[0]}
+                  alt={`${car.year} ${car.make} ${car.model}`}
+                  width={600}
+                  height={337}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <Car className="h-12 w-12 text-gray-400" />
+                </div>
+              )}
+            </div>
 
-                    <div className="col-span-9 md:col-span-2 flex items-center">
-                      <Checkbox
-                        id={`is-open-${day.value}`}
-                        checked={workingHours[index]?.isOpen}
-                        onCheckedChange={(checked) => {
-                          handleWorkingHourChange(index, "isOpen", checked === true);
-                        }}
-                      />
-                      <Label
-                        htmlFor={`is-open-${day.value}`}
-                        className="ml-2 cursor-pointer"
-                      >
-                        {workingHours[index]?.isOpen ? "Open" : "Closed"}
-                      </Label>
-                    </div>
+            <h3 className="text-lg font-bold">
+              {car.year} {car.make} {car.model}
+            </h3>
 
-                    {workingHours[index]?.isOpen && (
-                      <>
-                        <div className="col-span-5 md:col-span-4">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                            <Input
-                              type="time"
-                              value={workingHours[index]?.openTime}
-                              onChange={(e) =>
-                                handleWorkingHourChange(
-                                  index,
-                                  "openTime",
-                                  e.target.value
-                                )
-                              }
-                              className="text-sm"
-                            />
-                          </div>
-                        </div>
+            <div className="mt-2 text-xl font-bold text-blue-600">
+              ${car.price ? car.price.toLocaleString() : 'Price not available'}
+            </div>
 
-                        <div className="text-center col-span-1">to</div>
+            <div className="mt-4 text-sm text-gray-500">
+              <div className="flex justify-between py-1 border-b">
+                <span>Mileage</span>
+                <span className="font-medium">
+                  {car.mileage ? car.mileage.toLocaleString() : 'N/A'} miles
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span>Fuel Type</span>
+                <span className="font-medium">{car.fuelType}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span>Transmission</span>
+                <span className="font-medium">{car.transmission}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b">
+                <span>Body Type</span>
+                <span className="font-medium">{car.bodyType}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Color</span>
+                <span className="font-medium">{car.color}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                        <div className="col-span-5 md:col-span-3">
-                          <Input
-                            type="time"
-                            value={workingHours[index]?.closeTime}
-                            onChange={(e) =>
-                              handleWorkingHourChange(
-                                index,
-                                "closeTime",
-                                e.target.value
-                              )
-                            }
-                            className="text-sm"
+        {/* Dealership Info */}
+        <Card className="mt-6">
+          <CardContent className="p-6">
+            <h2 className="text-xl font-bold mb-4">Dealership Info</h2>
+            <div className="text-sm">
+              <p className="font-medium">
+                {dealership?.name || "Vehiql Motors"}
+              </p>
+              <p className="text-gray-600 mt-1">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.address || "Address not available"}
+              </p>
+              <p className="text-gray-600 mt-3">
+                <span className="font-medium">Phone:</span>{" "}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.phone || "Not available"}
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">Email:</span>{" "}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(dealership as any)?.email || "Not available"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column - Booking Form */}
+      <div className="md:col-span-2">
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-xl font-bold mb-6">Schedule Your Test Drive</h2>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Date Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Select a Date
+                </label>
+                <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => (
+                    <div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value
+                              ? format(field.value, "PPP")
+                              : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={isDayDisabled}
+                            initialFocus
                           />
-                        </div>
-                      </>
-                    )}
-
-                    {!workingHours[index]?.isOpen && (
-                      <div className="col-span-11 md:col-span-8 text-gray-500 italic text-sm">
-                        Closed all day
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <Button onClick={handleSaveHours} disabled={savingHours}>
-                  {savingHours ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Working Hours
-                    </>
+                        </PopoverContent>
+                      </Popover>
+                      {errors.date && (
+                        <p className="text-sm font-medium text-red-500 mt-1">
+                          {errors.date.message}
+                        </p>
+                      )}
+                    </div>
                   )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="admins" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Users</CardTitle>
-              <CardDescription>
-                Manage users with admin privileges.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  type="search"
-                  placeholder="Search users..."
-                  className="pl-9 w-full"
-                  value={userSearch}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearch(e.target.value)}
                 />
               </div>
 
-              {fetchingUsers ? (
-                <div className="py-12 flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : usersData?.success && filteredUsers.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                                {user.imageUrl ? (
-                                  <Image
-                                    src={user.imageUrl}
-                                    alt={user.name || "User"}
-                                    width={32}
-                                    height={32}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <Users className="h-4 w-4 text-gray-500" />
-                                )}
-                              </div>
-                              <span>{user.name || "Unnamed User"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                user.role === "ADMIN"
-                                  ? "bg-green-800"
-                                  : "bg-gray-800"
-                              }
-                            >
-                              {user.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {user.role === "ADMIN" ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600"
-                                onClick={() => {
-                                  setUserToDemote(user);
-                                  setConfirmRemoveDialog(true);
-                                }}
-                                disabled={updatingRole}
-                              >
-                                <UserX className="h-4 w-4 mr-2" />
-                                Remove Admin
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setUserToPromote(user);
-                                  setConfirmAdminDialog(true);
-                                }}
-                                disabled={updatingRole}
-                              >
-                                <Shield className="h-4 w-4 mr-2" />
-                                Make Admin
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">
-                    No users found
-                  </h3>
-                  <p className="text-gray-500">
-                    {userSearch
-                      ? "No users match your search criteria"
-                      : "There are no users registered yet"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Confirm Make Admin Dialog */}
-          <Dialog
-            open={confirmAdminDialog}
-            onOpenChange={setConfirmAdminDialog}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirm Admin Privileges</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to give admin privileges to{" "}
-                  {userToPromote?.name || userToPromote?.email}? Admin users can
-                  manage all aspects of the dealership.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmAdminDialog(false)}
-                  disabled={updatingRole}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleMakeAdmin} disabled={updatingRole}>
-                  {updatingRole ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Confirm
-                    </>
+              {/* Time Slot Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Select a Time Slot
+                </label>
+                <Controller
+                  name="timeSlot"
+                  control={control}
+                  render={({ field }) => (
+                    <div>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={
+                          !selectedDate || availableTimeSlots.length === 0
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !selectedDate
+                                ? "Please select a date first"
+                                : availableTimeSlots.length === 0
+                                ? "No available slots on this date"
+                                : "Select a time slot"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTimeSlots.map((slot) => (
+                            <SelectItem key={slot.id} value={slot.id}>
+                              {slot.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.timeSlot && (
+                        <p className="text-sm font-medium text-red-500 mt-1">
+                          {errors.timeSlot.message}
+                        </p>
+                      )}
+                    </div>
                   )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                />
+              </div>
 
-          {/* Confirm Remove Admin Dialog */}
-          <Dialog
-            open={confirmRemoveDialog}
-            onOpenChange={setConfirmRemoveDialog}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Remove Admin Privileges</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to remove admin privileges from{" "}
-                  {userToDemote?.name || userToDemote?.email}? They will no
-                  longer be able to access the admin dashboard.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmRemoveDialog(false)}
-                  disabled={updatingRole}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleRemoveAdmin}
-                  disabled={updatingRole}
-                >
-                  {updatingRole ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Removing...
-                    </>
-                  ) : (
-                    "Remove Admin"
+              {/* Notes */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Additional Notes (Optional)
+                </label>
+                <Controller
+                  name="notes"
+                  control={control}
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      placeholder="Any specific questions or requests for your test drive?"
+                      className="min-h-24"
+                    />
                   )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-      </Tabs>
+                />
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={bookingInProgress}
+              >
+                {bookingInProgress ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Booking Your Test Drive...
+                  </>
+                ) : (
+                  "Book Test Drive"
+                )}
+              </Button>
+            </form>
+
+            {/* Instructions */}
+            <div className="mt-8 bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium mb-2">What to expect</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  Bring your driver&apos;s license for verification
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  Test drives typically last 30-60 minutes
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  A dealership representative will accompany you
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              Test Drive Booked Successfully
+            </DialogTitle>
+            <DialogDescription>
+              Your test drive has been confirmed with the following details:
+            </DialogDescription>
+          </DialogHeader>
+
+          {bookingDetails && (
+            <div className="py-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="font-medium">Car:</span>
+                  <span>
+                    {car.year} {car.make} {car.model}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Date:</span>
+                  <span>{bookingDetails.date}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Time Slot:</span>
+                  <span>{bookingDetails.timeSlot}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Dealership:</span>
+                  <span>{dealership?.name || "Vehiql Motors"}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-blue-50 p-3 rounded text-sm text-blue-700">
+                Please arrive 10 minutes early with your driver&apos;s license.
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button onClick={handleCloseConfirmation}>Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
+}

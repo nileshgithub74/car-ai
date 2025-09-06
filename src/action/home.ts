@@ -5,9 +5,7 @@ import { db } from "@/lib/prisma";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
 
-
 // Function to serialize car data
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function serializeCarData(car: any) {
   return {
     ...car,
@@ -32,9 +30,8 @@ export async function getFeaturedCars(limit = 3) {
     });
 
     return cars.map(serializeCarData);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Error fetching featured cars:" + message);
+  } catch (error) {
+    throw new Error("Error fetching featured cars:" + (error as Error).message);
   }
 }
 
@@ -50,36 +47,34 @@ async function fileToBase64(file: File) {
  */
 export async function processImageSearch(file: File) {
   try {
-    // Check rate limit only if arcjet is available
-    if (aj) {
-      const req = await request();
-      const decision = await aj.protect(req, {
-        requested: 1, // Specify how many tokens to consume
-      });
+    // Get request data for ArcJet
+    const req = await request();
 
-      if (decision.isDenied()) {
-        if (decision.reason.isRateLimit()) {
-          const { remaining, reset } = decision.reason;
-          console.error({
-            code: "RATE_LIMIT_EXCEEDED",
-            details: {
-              remaining,
-              resetInSeconds: reset,
-            },
-          });
+    // Check rate limit
+    const decision = await aj!.protect(req, {
+      requested: 1, // Specify how many tokens to consume
+    });
 
-          throw new Error("Too many requests. Please try again later.");
-        }
+    if (decision.isDenied()) {
+      if (decision.reason.isRateLimit()) {
+        const { remaining, reset } = decision.reason;
+        console.error({
+          code: "RATE_LIMIT_EXCEEDED",
+          details: {
+            remaining,
+            resetInSeconds: reset,
+          },
+        });
 
-        throw new Error("Request blocked");
+        throw new Error("Too many requests. Please try again later.");
       }
-    }
-   
 
+      throw new Error("Request blocked");
+    }
 
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {
-      return { success: false, error: "Gemini API key is not configured" };
+      throw new Error("Gemini API key is not configured");
     }
 
     // Initialize Gemini API
@@ -139,8 +134,7 @@ export async function processImageSearch(file: File) {
         error: "Failed to parse AI response",
       };
     }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error("AI Search error:" + message);
+  } catch (error) {
+    throw new Error("AI Search error:" + (error as Error).message);
   }
 }
