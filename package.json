@@ -3,15 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "dev:fast": "next dev --turbo --experimental-https",
+    "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@arcjet/next": "^1.0.0-beta.11",
