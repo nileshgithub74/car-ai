@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/action/cars.ts", "src/app/(admin)/admin/cars/_component/CarList.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/action/cars.ts", "src/app/(admin)/admin/cars/_component/CarList.tsx", "src/app/(admin)/admin/test-drives/_component/test-drives-list.jsx", "src/app/(admin)/admin/test-drives/_component/test-drive-card.jsx", "src/app/(admin)/admin/settings/_component/settings-form.jsx"],
   "exclude": ["node_modules"]
 }

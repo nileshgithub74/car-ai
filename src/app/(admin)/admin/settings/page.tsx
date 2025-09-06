@@ -1,4 +1,5 @@
-import { SettingsForm } from "../settings/_component/settings-form";
+import { SettingsForm } from "./_component/settings-form";
+
 
 export const metadata = {
   title: "Settings | Vehiql Admin",
@@ -9,7 +10,7 @@ export default function SettingsPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      <SettingsForm />
+      <SettingsForm/>
     </div>
   );
 }

@@ -20,38 +20,14 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TestDriveCard } from "@/app/(admin)/admin/test-drives/_component/test-drive-card";
+import { TestDriveCard } from "../_component/test-drive-card";
 import useFetch from "@/hooks/use-fetch";
 import { getAdminTestDrives, updateTestDriveStatus } from "@/action/admin";
 import { cancelTestDrive } from "@/action/test-drive";
 
-type TestDriveBooking = {
-  id: string;
-  carId: string;
-  userId: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
-  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
-  notes?: string;
-  car: {
-    id: string;
-    make: string;
-    model: string;
-    year: number;
-    images: string[];
-  };
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    phone: string | null;
-  };
-};
-
 export const TestDrivesList = () => {
-  const [search, setSearch] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // Custom hooks for API calls
   const {
@@ -77,8 +53,8 @@ export const TestDrivesList = () => {
 
   // Initial fetch and refetch on search/filter changes
   useEffect(() => {
-    fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
-  }, [search, statusFilter, fetchTestDrives]);
+    fetchTestDrives({ search, status: statusFilter });
+  }, [search, statusFilter]);
 
   // Handle errors
   useEffect(() => {
@@ -95,34 +71,31 @@ export const TestDrivesList = () => {
 
   // Handle successful operations
   useEffect(() => {
-    const updateRes = updateResult as { success?: boolean } | undefined;
-    const cancelRes = cancelResult as { success?: boolean } | undefined;
-    
-    if (updateRes?.success) {
+    if (updateResult?.success) {
       toast.success("Test drive status updated successfully");
-      fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
+      fetchTestDrives({ search, status: statusFilter });
     }
-    if (cancelRes?.success) {
+    if (cancelResult?.success) {
       toast.success("Test drive cancelled successfully");
-      fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
+      fetchTestDrives({ search, status: statusFilter });
     }
-  }, [updateResult, cancelResult, search, statusFilter, fetchTestDrives]);
+  }, [updateResult, cancelResult]);
 
   // Handle search submit
-  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchTestDrives({ search, status: statusFilter === "all" ? "" : statusFilter });
+    fetchTestDrives({ search, status: statusFilter });
   };
 
   // Handle status update
-  const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+  const handleUpdateStatus = async (bookingId, newStatus) => {
     if (newStatus) {
-      await updateStatusFn(bookingId, newStatus as "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED");
+      await updateStatusFn(bookingId, newStatus);
     }
   };
 
   // Handle booking cancellation
-  const handleCancel = async (bookingId: string) => {
+  const handleCancel = async (bookingId) => {
     await cancelTestDriveFn(bookingId);
   };
 
@@ -132,23 +105,23 @@ export const TestDrivesList = () => {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-4 w-full">
           {/* Status Filter */}
-          <div className="w-full sm:w-48">
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            className="w-full sm:w-48"
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem>All Statuses</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              <SelectItem value="NO_SHOW">No Show</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Search Form */}
           <form onSubmit={handleSearchSubmit} className="flex w-full">
@@ -194,21 +167,21 @@ export const TestDrivesList = () => {
                 Failed to load test drives. Please try again.
               </AlertDescription>
             </Alert>
-          ) : (testDrivesData as { data?: TestDriveBooking[] } | undefined)?.data?.length === 0 ? (
+          ) : testDrivesData?.data?.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <CalendarRange className="h-12 w-12 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-1">
                 No test drives found
               </h3>
               <p className="text-gray-500 mb-4">
-                {(statusFilter !== "all" && statusFilter) || search
+                {statusFilter || search
                   ? "No test drives match your search criteria"
                   : "There are no test drive bookings yet."}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {(testDrivesData as { data?: TestDriveBooking[] } | undefined)?.data?.map((booking: TestDriveBooking) => (
+              {testDrivesData?.data?.map((booking) => (
                 <div key={booking.id} className="relative">
                   <TestDriveCard
                     booking={booking}
@@ -235,6 +208,7 @@ export const TestDrivesList = () => {
                           <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                           <SelectItem value="COMPLETED">Completed</SelectItem>
                           <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                          <SelectItem value="NO_SHOW">No Show</SelectItem>
                         </SelectContent>
                       </Select>
                     )}
