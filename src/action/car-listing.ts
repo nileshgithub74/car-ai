@@ -2,6 +2,8 @@
 
 import { serializeCarData } from "@/lib/helpers";
 import { db } from "@/lib/prisma";
+import { Car } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -52,10 +54,10 @@ export async function getCarFilters() {
     return {
       success: true,
       data: {
-        makes: makes.map((item) => item.make),
-        bodyTypes: bodyTypes.map((item) => item.bodyType),
-        fuelTypes: fuelTypes.map((item) => item.fuelType),
-        transmissions: transmissions.map((item) => item.transmission),
+  makes: makes.map((item: { make: string }) => item.make),
+  bodyTypes: bodyTypes.map((item: { bodyType: string }) => item.bodyType),
+  fuelTypes: fuelTypes.map((item: { fuelType: string }) => item.fuelType),
+  transmissions: transmissions.map((item: { transmission: string }) => item.transmission),
         priceRange: {
           min: priceAggregations._min.price
             ? parseFloat(priceAggregations._min.price.toString())
@@ -109,7 +111,7 @@ export async function getCars({
     }
 
     // Build where conditions
-    let where: any = {
+    const where: Prisma.CarWhereInput = {
       status: "AVAILABLE",
     };
 
@@ -173,13 +175,16 @@ export async function getCars({
         select: { carId: true },
       });
 
-      wishlisted = new Set(savedCars.map((saved: any) => saved.carId));
+  wishlisted = new Set(savedCars.map((saved: { carId: string }) => saved.carId));
     }
 
     // Serialize and check wishlist status
-    const serializedCars = cars.map((car) =>
-      serializeCarData(car as any, wishlisted.has(car.id))
-    );
+  const serializedCars = cars.map((car: Car) =>
+    serializeCarData({
+      ...car,
+      price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price)
+    }, wishlisted.has(car.id))
+  );
 
     return {
       success: true,
@@ -344,7 +349,10 @@ export async function getCarById(carId: string) {
     return {
       success: true,
       data: {
-        ...serializeCarData(car as any, isWishlisted),
+  ...serializeCarData({
+    ...car,
+    price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price)
+}, isWishlisted),
         testDriveInfo: {
           userTestDrive,
           dealership: dealership
@@ -352,7 +360,7 @@ export async function getCarById(carId: string) {
                 ...dealership,
                 createdAt: dealership.createdAt.toISOString(),
                 updatedAt: dealership.updatedAt.toISOString(),
-                workingHours: dealership.workingHours.map((hour) => ({
+                workingHours: dealership.workingHours.map((hour: { id: string; createdAt: Date; updatedAt: Date; dealershipId: string; dayOfWeek: string; openTime: string; closeTime: string; isOpen: boolean; }) => ({
                   ...hour,
                   createdAt: hour.createdAt.toISOString(),
                   updatedAt: hour.updatedAt.toISOString(),
@@ -402,7 +410,10 @@ export async function getSavedCars() {
     });
 
     // Extract and format car data
-    const cars = savedCars.map((saved: any) => serializeCarData(saved.car));
+  const cars = savedCars.map((saved: { car: Car }) => serializeCarData({
+    ...saved.car,
+    price: typeof saved.car.price === 'object' && typeof saved.car.price.toNumber === 'function' ? saved.car.price.toNumber() : Number(saved.car.price)
+  }));
 
     return {
       success: true,

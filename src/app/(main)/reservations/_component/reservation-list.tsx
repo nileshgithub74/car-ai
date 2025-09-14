@@ -41,7 +41,6 @@ export function ReservationsList({ initialData }: { initialData: InitialData }) 
   const {
     loading: cancelling,
     fn: cancelBookingFn,
-    error: cancelError,
   } = useFetch(cancelTestDrive);
 
   // Handle cancellation
@@ -93,7 +92,6 @@ export function ReservationsList({ initialData }: { initialData: InitialData }) 
                 onCancel={handleCancelBooking}
                 isCancelling={cancelling}
                 showActions
-                cancelError={cancelError}
               />
             ))}
           </div>
@@ -110,6 +108,8 @@ export function ReservationsList({ initialData }: { initialData: InitialData }) 
                 key={booking.id}
                 booking={booking}
                 showActions={false}
+                onCancel={() => {}}
+                isCancelling={false}
               />
             ))}
           </div>

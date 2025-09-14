@@ -8,6 +8,8 @@ import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 import { serializeCarData } from "@/lib/helpers";
+import { Car, CarStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 // Function to convert File to base64
 async function fileToBase64(file: File) {
@@ -127,7 +129,8 @@ export async function processCarImageWithAI(file: File) {
 }
 
 // Add a car to the database with images
-export async function addCar({ carData, images }: { carData: any; images: string[] }) {
+// TODO: Replace 'any' with a proper CarCreateInput type if available
+export async function addCar({ carData, images }: { carData: Prisma.CarCreateInput; images: string[] }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -193,7 +196,7 @@ export async function addCar({ carData, images }: { carData: any; images: string
     }
 
     // Add the car to the database
-    const car = await db.car.create({
+    await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
         make: carData.make,
@@ -228,7 +231,7 @@ export async function addCar({ carData, images }: { carData: any; images: string
 export async function getCars(search: string = "") {
   try {
     // Build where conditions
-    let where: any = {};
+  const where: Record<string, unknown> = {};
 
     // Add search filter
     if (search) {
@@ -245,11 +248,14 @@ export async function getCars(search: string = "") {
       orderBy: { createdAt: "desc" },
     });
 
-    const serializedCars = cars.map((car: any) => serializeCarData(car));
+  const serializedCars = cars.map((car: Car) => serializeCarData({
+    ...car,
+    price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price)
+  }));
 
     return {
       success: true,
-      data: serializedCars,
+      data: serializedCars
     };
   } catch (error) {
     console.error("Error fetching cars:", error);
@@ -267,6 +273,7 @@ export async function deleteCar(id: string) {
     if (!userId) throw new Error("Unauthorized");
 
     // First, fetch the car to get its images
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const car = await db.car.findUnique({
       where: { id },
       select: { images: true },
@@ -330,12 +337,12 @@ export async function deleteCar(id: string) {
 }
 
 // Update car status or featured status
-export async function updateCarStatus(id: string, { status, featured }: { status?: any; featured?: any }) {
+export async function updateCarStatus(id: string, { status, featured }: { status?: CarStatus; featured?: boolean }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-    const updateData: any = {};
+  const updateData: Partial<Car> = {};
 
     if (status !== undefined) {
       updateData.status = status;

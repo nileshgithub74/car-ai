@@ -2,6 +2,7 @@
 
 import { serializeCarData } from "@/lib/helpers";
 import { db } from "@/lib/prisma";
+import { Prisma, CarStatus, BookingStatus } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -39,38 +40,27 @@ export async function getAdminTestDrives({ search = "", status = "" }: { search?
     }
 
     // Build where conditions
-    let where: any = {};
+    const where: Prisma.CarWhereInput = {};
 
     // Add status filter
     if (status) {
-      where.status = status;
+  where.status = status as CarStatus;
     }
 
-    // Add search filter
+    // Add search filter for test drive bookings
+  const bookingWhere: Prisma.TestDriveBookingWhereInput = {};
     if (search) {
-      where.OR = [
-        {
-          car: {
-            OR: [
-              { make: { contains: search, mode: "insensitive" } },
-              { model: { contains: search, mode: "insensitive" } },
-            ],
-          },
-        },
-        {
-          user: {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          },
-        },
+      bookingWhere.OR = [
+        { car: { make: { contains: search, mode: "insensitive" } } },
+        { car: { model: { contains: search, mode: "insensitive" } } },
+        { car: { color: { contains: search, mode: "insensitive" } } },
+        { car: { year: { equals: parseInt(search) } } },
       ];
     }
 
     // Get bookings
     const bookings = await db.testDriveBooking.findMany({
-      where,
+      where: bookingWhere,
       include: {
         car: true,
         user: {
@@ -87,20 +77,25 @@ export async function getAdminTestDrives({ search = "", status = "" }: { search?
     });
 
     // Format the bookings
-    const formattedBookings = bookings.map((booking) => ({
-      id: booking.id,
-      carId: booking.carId,
-      car: serializeCarData(booking.car as any),
-      userId: booking.userId,
-      user: booking.user,
-      bookingDate: booking.bookingDate.toISOString(),
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      status: booking.status,
-      notes: booking.notes,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-    }));
+  const formattedBookings = bookings.map((booking) => ({
+    id: booking.id,
+    carId: booking.carId,
+    car: serializeCarData({
+      ...booking.car,
+      price: typeof booking.car.price === 'object' && typeof booking.car.price.toNumber === 'function'
+        ? booking.car.price.toNumber()
+        : Number(booking.car.price)
+    }),
+    userId: booking.userId,
+    user: booking.user,
+    bookingDate: booking.bookingDate.toISOString(),
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    status: booking.status,
+    notes: booking.notes,
+    createdAt: booking.createdAt.toISOString(),
+    updatedAt: booking.updatedAt.toISOString(),
+  }));
 
     return {
       success: true,
@@ -159,7 +154,7 @@ export async function updateTestDriveStatus(bookingId: string, newStatus: string
     // Update status
     await db.testDriveBooking.update({
       where: { id: bookingId },
-      data: { status: newStatus as any },
+  data: { status: newStatus as BookingStatus },
     });
 
     // Revalidate paths
@@ -215,40 +210,26 @@ export async function getDashboardData() {
 
     // Calculate car statistics
     const totalCars = cars.length;
-    const availableCars = cars.filter(
-      (car) => car.status === "AVAILABLE"
-    ).length;
-    const soldCars = cars.filter((car) => car.status === "SOLD").length;
-    const unavailableCars = cars.filter(
-      (car) => car.status === "UNAVAILABLE"
-    ).length;
-    const featuredCars = cars.filter((car) => car.featured === true).length;
+    const availableCars = cars.filter((car: { status: string }) => car.status === "AVAILABLE").length;
+    const soldCars = cars.filter((car: { status: string }) => car.status === "SOLD").length;
+    const unavailableCars = cars.filter((car: { status: string }) => car.status === "UNAVAILABLE").length;
+    const featuredCars = cars.filter((car: { featured: boolean }) => car.featured === true).length;
 
     // Calculate test drive statistics
     const totalTestDrives = testDrives.length;
-    const pendingTestDrives = testDrives.filter(
-      (td) => td.status === "PENDING"
-    ).length;
-    const confirmedTestDrives = testDrives.filter(
-      (td) => td.status === "CONFIRMED"
-    ).length;
-    const completedTestDrives = testDrives.filter(
-      (td) => td.status === "COMPLETED"
-    ).length;
-    const cancelledTestDrives = testDrives.filter(
-      (td) => td.status === "CANCELLED"
-    ).length;
-    const noShowTestDrives = testDrives.filter(
-      (td) => td.status === "NO_SHOW" as any
-    ).length;
+    const pendingTestDrives = testDrives.filter((td: { status: string }) => td.status === "PENDING").length;
+    const confirmedTestDrives = testDrives.filter((td: { status: string }) => td.status === "CONFIRMED").length;
+    const completedTestDrives = testDrives.filter((td: { status: string }) => td.status === "COMPLETED").length;
+    const cancelledTestDrives = testDrives.filter((td: { status: string }) => td.status === "CANCELLED").length;
+    const noShowTestDrives = testDrives.filter((td: { status: string }) => td.status === "NO_SHOW").length;
 
     // Calculate test drive conversion rate
     const completedTestDriveCarIds = testDrives
-      .filter((td) => td.status === "COMPLETED")
-      .map((td) => td.carId);
+      .filter((td: { status: string }) => td.status === "COMPLETED")
+      .map((td: { carId: string }) => td.carId);
 
     const soldCarsAfterTestDrive = cars.filter(
-      (car) =>
+      (car: { status: string, id: string }) =>
         car.status === "SOLD" && completedTestDriveCarIds.includes(car.id)
     ).length;
 

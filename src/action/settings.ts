@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { UserRole, DayOfWeek } from "@prisma/client";
 
 // Get dealership info with working hours
 export async function getDealershipInfo() {
@@ -98,7 +99,7 @@ export async function getDealershipInfo() {
 }
 
 // Save working hours
-export async function saveWorkingHours(workingHours: any) {
+export async function saveWorkingHours(workingHours: Array<Record<string, unknown>>) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -128,10 +129,10 @@ export async function saveWorkingHours(workingHours: any) {
     for (const hour of workingHours) {
       await db.workingHour.create({
         data: {
-          dayOfWeek: hour.dayOfWeek,
-          openTime: hour.openTime,
-          closeTime: hour.closeTime,
-          isOpen: hour.isOpen,
+          dayOfWeek: hour.dayOfWeek as DayOfWeek,
+          openTime: hour.openTime as string,
+          closeTime: hour.closeTime as string,
+          isOpen: hour.isOpen as boolean,
           dealershipId: dealership.id,
         },
       });
@@ -210,7 +211,7 @@ export async function updateUserRole(userId: string, role: string) {
     // Update user role
     await db.user.update({
       where: { id: userId },
-      data: { role: role as any },
+      data: { role: role as UserRole },
     });
 
     // Revalidate paths

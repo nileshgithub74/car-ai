@@ -4,14 +4,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
+import { Car } from "@prisma/client";
 
 // Function to serialize car data
-function serializeCarData(car: any) {
+function serializeCarData(car: Car) {
   return {
     ...car,
-    price: car.price ? parseFloat(car.price.toString()) : 0,
+    id: typeof car.id === 'string' ? parseInt(car.id, 16) || 0 : car.id,
+    price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price),
     createdAt: car.createdAt?.toISOString(),
     updatedAt: car.updatedAt?.toISOString(),
+    wishlisted: false,
   };
 }
 

@@ -124,7 +124,14 @@ export async function getUserTestDrives() {
     const formattedBookings = bookings.map((booking) => ({
       id: booking.id,
       carId: booking.carId,
-      car: serializeCarData(booking.car as any),
+      car: serializeCarData({
+        ...booking.car,
+        price:
+          typeof booking.car.price === "object" &&
+          typeof booking.car.price.toNumber === "function"
+            ? booking.car.price.toNumber()
+            : Number(booking.car.price),
+      }),
       bookingDate: booking.bookingDate.toISOString(),
       startTime: booking.startTime,
       endTime: booking.endTime,
