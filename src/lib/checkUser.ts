@@ -19,12 +19,16 @@ export const checkUser = async () => {
       return loggedUser;
     }
 
+    // If this is the first user in the system, make them ADMIN to bootstrap access
+    const usersCount = await db.user.count();
+
     const newUser = await db.user.create({
       data: {
         clerkUserId: user.id,
         name: `${user.firstName} ${user.lastName}`,
         imageUrl: user.imageUrl,
         email: user.emailAddresses[0].emailAddress,
+        role: usersCount === 0 ? "ADMIN" : undefined,
       },
     });
 

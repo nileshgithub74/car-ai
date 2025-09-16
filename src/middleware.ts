@@ -8,16 +8,23 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 // Simplified middleware without Arcjet to reduce bundle size
-export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+// If Clerk env keys are not set, bypass auth checks in dev
+const hasClerkEnv = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
 
-  if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
-  }
+const handler = hasClerkEnv
+  ? clerkMiddleware(async (auth, req) => {
+      const { userId } = await auth();
 
-  return NextResponse.next();
-});
+      if (!userId && isProtectedRoute(req)) {
+        const { redirectToSignIn } = await auth();
+        return redirectToSignIn();
+      }
+
+      return NextResponse.next();
+    })
+  : ((req: any) => NextResponse.next());
+
+export default handler;
 
 export const config = {
   matcher: [

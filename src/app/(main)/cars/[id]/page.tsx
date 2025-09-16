@@ -2,68 +2,29 @@ import { getCarById } from "@/action/car-listing";
 import { CarDetails } from "./_component/car-details";
 import { notFound } from "next/navigation";
 
-// interface TestDriveInfo {
-//   userTestDrive?: {
-//     id: string;
-//     status: string;
-//     scheduledDate?: string;
-//     scheduledTime?: string;
-//   };
-//   dealership?: {
-//     id: string;
-//     name: string;
-//     address?: string;
-//     phone?: string;
-//     email?: string;
-//     workingHours?: Array<{
-//       dayOfWeek: string;
-//       isOpen: boolean;
-//       openTime: string;
-//       closeTime: string;
-//     }>;
-//   } | null;
-// }
-
-interface Metadata {
-  title: string;
-  description?: string;
-  openGraph?: {
-    images: string[];
-  };
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }) {
   const { id } = await params;
   const result = await getCarById(id);
 
-  if (!result.success || !result.data) {
+  if (!result.success) {
     return {
       title: "Car Not Found | Vehiql",
       description: "The requested car could not be found",
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const carData = result.data as any;
+  const car = result.data;
 
   return {
-    title: `${carData.year} ${carData.make} ${carData.model} | Vehiql`,
-    description: carData.description?.substring(0, 160) || "Car details",
+    title: `${car.year} ${car.make} ${car.model} | Vehiql`,
+    description: car.description.substring(0, 160),
     openGraph: {
-      images: carData.images?.[0] ? [carData.images[0]] : [],
+      images: car.images?.[0] ? [car.images[0]] : [],
     },
   };
 }
 
-export default async function CarDetailsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CarDetailsPage({ params }) {
   // Fetch car details
   const { id } = await params;
   const result = await getCarById(id);
@@ -73,13 +34,9 @@ export default async function CarDetailsPage({
     notFound();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const car = result.data as any;
-  const { testDriveInfo, ...carData } = car;
-
   return (
     <div className="container mx-auto px-4 py-12">
-      <CarDetails car={carData} testDriveInfo={testDriveInfo} />
+      <CarDetails car={result.data} testDriveInfo={result.data.testDriveInfo} />
     </div>
   );
 }

@@ -4,17 +4,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
-import { Car } from "@prisma/client";
 
 // Function to serialize car data
-function serializeCarData(car: Car) {
+function serializeCarData(car) {
   return {
     ...car,
-    id: typeof car.id === 'string' ? parseInt(car.id, 16) || 0 : car.id,
-    price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price),
+    price: car.price ? parseFloat(car.price.toString()) : 0,
     createdAt: car.createdAt?.toISOString(),
     updatedAt: car.updatedAt?.toISOString(),
-    wishlisted: false,
   };
 }
 
@@ -34,12 +31,13 @@ export async function getFeaturedCars(limit = 3) {
 
     return cars.map(serializeCarData);
   } catch (error) {
-    throw new Error("Error fetching featured cars:" + (error as Error).message);
+    console.error("Error fetching featured cars:", error);
+    return [];
   }
 }
 
 // Function to convert File to base64
-async function fileToBase64(file: File) {
+async function fileToBase64(file) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   return buffer.toString("base64");
@@ -48,13 +46,13 @@ async function fileToBase64(file: File) {
 /**
  * Process car image with Gemini AI
  */
-export async function processImageSearch(file: File) {
+export async function processImageSearch(file) {
   try {
     // Get request data for ArcJet
     const req = await request();
 
     // Check rate limit
-    const decision = await aj!.protect(req, {
+    const decision = await aj.protect(req, {
       requested: 1, // Specify how many tokens to consume
     });
 
@@ -138,6 +136,6 @@ export async function processImageSearch(file: File) {
       };
     }
   } catch (error) {
-    throw new Error("AI Search error:" + (error as Error).message);
+    throw new Error("AI Search error:" + error.message);
   }
 }

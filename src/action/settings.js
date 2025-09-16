@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { UserRole, DayOfWeek } from "@prisma/client";
 
 // Get dealership info with working hours
 export async function getDealershipInfo() {
@@ -94,12 +93,12 @@ export async function getDealershipInfo() {
       },
     };
   } catch (error) {
-    throw new Error("Error fetching dealership info:" + (error as Error).message);
+    throw new Error("Error fetching dealership info:" + error.message);
   }
 }
 
 // Save working hours
-export async function saveWorkingHours(workingHours: Array<Record<string, unknown>>) {
+export async function saveWorkingHours(workingHours) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -129,10 +128,10 @@ export async function saveWorkingHours(workingHours: Array<Record<string, unknow
     for (const hour of workingHours) {
       await db.workingHour.create({
         data: {
-          dayOfWeek: hour.dayOfWeek as DayOfWeek,
-          openTime: hour.openTime as string,
-          closeTime: hour.closeTime as string,
-          isOpen: hour.isOpen as boolean,
+          dayOfWeek: hour.dayOfWeek,
+          openTime: hour.openTime,
+          closeTime: hour.closeTime,
+          isOpen: hour.isOpen,
           dealershipId: dealership.id,
         },
       });
@@ -146,16 +145,14 @@ export async function saveWorkingHours(workingHours: Array<Record<string, unknow
       success: true,
     };
   } catch (error) {
-    throw new Error("Error saving working hours:" + (error as Error).message);
+    throw new Error("Error saving working hours:" + error.message);
   }
 }
 
 // Get all users
 export async function getUsers() {
   try {
-    console.log("getUsers: Function called");
     const { userId } = await auth();
-    console.log("getUsers: User ID:", userId);
     if (!userId) throw new Error("Unauthorized");
 
     // Check if user is admin
@@ -171,30 +168,22 @@ export async function getUsers() {
     const users = await db.user.findMany({
       orderBy: { createdAt: "desc" },
     });
-    console.log("getUsers: Found users:", users.length);
 
-    const result = {
+    return {
       success: true,
       data: users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        imageUrl: user.imageUrl,
+        ...user,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       })),
     };
-    console.log("getUsers: Returning result:", result);
-    return result;
   } catch (error) {
-    console.error("Error fetching users:", error);
-    throw new Error("Error fetching users: " + (error as Error).message);
+    throw new Error("Error fetching users:" + error.message);
   }
 }
 
 // Update user role
-export async function updateUserRole(userId: string, role: string) {
+export async function updateUserRole(userId, role) {
   try {
     const { userId: adminId } = await auth();
     if (!adminId) throw new Error("Unauthorized");
@@ -211,7 +200,7 @@ export async function updateUserRole(userId: string, role: string) {
     // Update user role
     await db.user.update({
       where: { id: userId },
-      data: { role: role as UserRole },
+      data: { role },
     });
 
     // Revalidate paths
@@ -221,6 +210,6 @@ export async function updateUserRole(userId: string, role: string) {
       success: true,
     };
   } catch (error) {
-    throw new Error("Error updating user role:" + (error as Error).message);
+    throw new Error("Error updating user role:" + error.message);
   }
 }

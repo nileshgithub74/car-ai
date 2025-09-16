@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -19,13 +18,8 @@ model User {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   role        UserRole           @default(USER)
-  savedCars   UserSavedCars[]
   testDrives  TestDriveBooking[]
-}
-
-enum UserRole {
-  USER
-  ADMIN
+  savedCars   UserSavedCars[]
 }
 
 model Car {
@@ -44,10 +38,10 @@ model Car {
   status            CarStatus          @default(AVAILABLE)
   featured          Boolean            @default(false)
   images            String[]
-  savedBy           UserSavedCars[]
-  testDriveBookings TestDriveBooking[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  testDriveBookings TestDriveBooking[]
+  savedBy           UserSavedCars[]
 
   @@index([bodyType])
   @@index([make, model])
@@ -58,38 +52,24 @@ model Car {
   @@index([featured])
 }
 
-enum CarStatus {
-  AVAILABLE
-  UNAVAILABLE
-  SOLD
-}
-
 model TestDriveBooking {
-  id        String @id @default(uuid())
-  carId     String
-  car       Car    @relation(fields: [carId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookingDate DateTime @db.Date
-  startTime String
-  endTime   String
-  status    BookingStatus
-  notes     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String        @id @default(uuid())
+  carId       String
+  userId      String
+  bookingDate DateTime      @db.Date
+  startTime   String
+  endTime     String
+  status      BookingStatus
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  car         Car           @relation(fields: [carId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([carId])
   @@index([userId])
   @@index([bookingDate])
   @@index([status])
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
 }
 
 model DealershipInfo {
@@ -98,26 +78,57 @@ model DealershipInfo {
   address      String        @default("Car Street, Autovill")
   phone        String        @default("(555) 123-4567")
   email        String        @default("contact@vehiql.com")
-  workingHours WorkingHour[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  workingHours WorkingHour[]
 }
 
 model WorkingHour {
   id           String         @id @default(uuid())
   dealershipId String
-  dealership   DealershipInfo @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
   dayOfWeek    DayOfWeek
   openTime     String
   closeTime    String
   isOpen       Boolean        @default(true)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  dealership   DealershipInfo @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   @@index([dealershipId, dayOfWeek])
   @@index([dayOfWeek])
   @@index([dealershipId])
   @@index([isOpen])
+}
+
+model UserSavedCars {
+  id      String   @id @default(uuid())
+  userId  String
+  carId   String
+  savedAt DateTime @default(now())
+  car     Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, carId])
+  @@index([userId])
+  @@index([carId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum CarStatus {
+  AVAILABLE
+  UNAVAILABLE
+  SOLD
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
 }
 
 enum DayOfWeek {
@@ -128,18 +139,4 @@ enum DayOfWeek {
   FRIDAY
   SATURDAY
   SUNDAY
-}
-
-model UserSavedCars {
-  id      String   @id @default(uuid())
-  userId  String
-  carId   String
-  savedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, carId])
-  @@index([userId])
-  @@index([carId])
 }

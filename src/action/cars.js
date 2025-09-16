@@ -8,18 +8,16 @@ import { db } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 import { serializeCarData } from "@/lib/helpers";
-import { Car, CarStatus } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 
 // Function to convert File to base64
-async function fileToBase64(file: File) {
+async function fileToBase64(file) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   return buffer.toString("base64");
 }
 
 // Gemini AI integration for car image processing
-export async function processCarImageWithAI(file: File) {
+export async function processCarImageWithAI(file) {
   try {
     // Check if API key is available
     if (!process.env.GEMINI_API_KEY) {
@@ -124,13 +122,12 @@ export async function processCarImageWithAI(file: File) {
     }
   } catch (error) {
     console.error();
-    throw new Error("Gemini API error:" + (error as Error).message);
+    throw new Error("Gemini API error:" + error.message);
   }
 }
 
 // Add a car to the database with images
-// TODO: Replace 'any' with a proper CarCreateInput type if available
-export async function addCar({ carData, images }: { carData: Prisma.CarCreateInput; images: string[] }) {
+export async function addCar({ carData, images }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -147,7 +144,7 @@ export async function addCar({ carData, images }: { carData: Prisma.CarCreateInp
 
     // Initialize Supabase client for server-side operations
     const cookieStore = await cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     // Upload all images to Supabase storage
     const imageUrls = [];
@@ -174,7 +171,7 @@ export async function addCar({ carData, images }: { carData: Prisma.CarCreateInp
       const filePath = `${folderPath}/${fileName}`;
 
       // Upload the file buffer directly
-      const { data, error } = await (await supabase).storage
+      const { data, error } = await supabase.storage
         .from("car-images")
         .upload(filePath, imageBuffer, {
           contentType: `image/${fileExtension}`,
@@ -196,7 +193,7 @@ export async function addCar({ carData, images }: { carData: Prisma.CarCreateInp
     }
 
     // Add the car to the database
-    await db.car.create({
+    const car = await db.car.create({
       data: {
         id: carId, // Use the same ID we used for the folder
         make: carData.make,
@@ -223,15 +220,15 @@ export async function addCar({ carData, images }: { carData: Prisma.CarCreateInp
       success: true,
     };
   } catch (error) {
-    throw new Error("Error adding car:" + (error as Error).message);
+    throw new Error("Error adding car:" + error.message);
   }
 }
 
 // Fetch all cars with simple search
-export async function getCars(search: string = "") {
+export async function getCars(search = "") {
   try {
     // Build where conditions
-  const where: Record<string, unknown> = {};
+    let where = {};
 
     // Add search filter
     if (search) {
@@ -248,32 +245,28 @@ export async function getCars(search: string = "") {
       orderBy: { createdAt: "desc" },
     });
 
-  const serializedCars = cars.map((car: Car) => serializeCarData({
-    ...car,
-    price: typeof car.price === 'object' && typeof car.price.toNumber === 'function' ? car.price.toNumber() : Number(car.price)
-  }));
+    const serializedCars = cars.map(serializeCarData);
 
     return {
       success: true,
-      data: serializedCars
+      data: serializedCars,
     };
   } catch (error) {
     console.error("Error fetching cars:", error);
     return {
       success: false,
-      error: (error as Error).message,
+      error: error.message,
     };
   }
 }
 
 // Delete a car by ID
-export async function deleteCar(id: string) {
+export async function deleteCar(id) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
     // First, fetch the car to get its images
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const car = await db.car.findUnique({
       where: { id },
       select: { images: true },
@@ -293,8 +286,8 @@ export async function deleteCar(id: string) {
 
     // Delete the images from Supabase storage
     try {
-      const cookieStore = await cookies();
-      const supabase = await createClient(cookieStore);
+      const cookieStore = cookies();
+      const supabase = createClient(cookieStore);
 
       // Extract file paths from image URLs
       const filePaths = car.images
@@ -307,9 +300,9 @@ export async function deleteCar(id: string) {
 
       // Delete files from storage if paths were extracted
       if (filePaths.length > 0) {
-        const { error } = await (await supabase).storage
+        const { error } = await supabase.storage
           .from("car-images")
-          .remove(filePaths.filter((path): path is string => path !== null));
+          .remove(filePaths);
 
         if (error) {
           console.error("Error deleting images:", error);
@@ -331,18 +324,18 @@ export async function deleteCar(id: string) {
     console.error("Error deleting car:", error);
     return {
       success: false,
-      error: (error as Error).message,
+      error: error.message,
     };
   }
 }
 
 // Update car status or featured status
-export async function updateCarStatus(id: string, { status, featured }: { status?: CarStatus; featured?: boolean }) {
+export async function updateCarStatus(id, { status, featured }) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
-  const updateData: Partial<Car> = {};
+    const updateData = {};
 
     if (status !== undefined) {
       updateData.status = status;
@@ -368,7 +361,7 @@ export async function updateCarStatus(id: string, { status, featured }: { status
     console.error("Error updating car status:", error);
     return {
       success: false,
-      error: (error as Error).message,
+      error: error.message,
     };
   }
 }

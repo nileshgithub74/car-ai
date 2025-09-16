@@ -6,9 +6,12 @@ import { CarIcon, Heart } from "lucide-react";
 import { Button } from "./button";
 import { Badge } from "./badge";
 import { useRouter } from "next/navigation";
+import useFetch from "@/hooks/use-fetch";
+import { toggleSavedCar } from "@/action/car-listing";
+import { toast } from "sonner";
 
 export interface Car {
-  id: number;
+  id: string;
   make: string;
   model: string;
   year: number;
@@ -29,8 +32,9 @@ interface CarsProps{
 
 const CarCard :React.FC<CarsProps>= ({ car }) => {
   const [isSaved, setSaved] = useState(car.wishlisted);
+  const { loading, fn: toggleFn } = useFetch(toggleSavedCar);
 
-  const  router = useRouter();
+  const router = useRouter();
 
 
 
@@ -60,7 +64,20 @@ const CarCard :React.FC<CarsProps>= ({ car }) => {
         variant="ghost"
         size="icon"
         className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5"
-        onClick={() => setSaved(!isSaved)}
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            // Optimistic update
+            setSaved((prev) => !prev);
+            await toggleFn(car.id);
+          } catch {
+            // Revert on error
+            setSaved((prev) => !prev);
+            toast.error("Failed to update favorites");
+          }
+        }}
+        disabled={loading}
       >
         <Heart
           size={20}

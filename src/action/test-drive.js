@@ -14,12 +14,6 @@ export async function bookTestDrive({
   startTime,
   endTime,
   notes,
-}: {
-  carId: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
-  notes?: string;
 }) {
   try {
     // Authenticate user
@@ -81,7 +75,7 @@ export async function bookTestDrive({
     console.error("Error booking test drive:", error);
     return {
       success: false,
-      error: (error as Error).message || "Failed to book test drive",
+      error: error.message || "Failed to book test drive",
     };
   }
 }
@@ -124,14 +118,7 @@ export async function getUserTestDrives() {
     const formattedBookings = bookings.map((booking) => ({
       id: booking.id,
       carId: booking.carId,
-      car: serializeCarData({
-        ...booking.car,
-        price:
-          typeof booking.car.price === "object" &&
-          typeof booking.car.price.toNumber === "function"
-            ? booking.car.price.toNumber()
-            : Number(booking.car.price),
-      }),
+      car: serializeCarData(booking.car),
       bookingDate: booking.bookingDate.toISOString(),
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -149,7 +136,7 @@ export async function getUserTestDrives() {
     console.error("Error fetching test drives:", error);
     return {
       success: false,
-      error: (error as Error).message,
+      error: error.message,
     };
   }
 }
@@ -157,7 +144,7 @@ export async function getUserTestDrives() {
 /**
  * Cancel a test drive booking
  */
-export async function cancelTestDrive(bookingId: string) {
+export async function cancelTestDrive(bookingId) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -191,8 +178,8 @@ export async function cancelTestDrive(bookingId: string) {
       };
     }
 
-    // Check if user owns this booking
-    if (booking.userId !== user.id || user.role !== "ADMIN") {
+    // Allow cancel if user owns the booking OR is an admin
+    if (booking.userId !== user.id && user.role !== "ADMIN") {
       return {
         success: false,
         error: "Unauthorized to cancel this booking",
@@ -232,7 +219,7 @@ export async function cancelTestDrive(bookingId: string) {
     console.error("Error cancelling test drive:", error);
     return {
       success: false,
-      error: (error as Error).message,
+      error: error.message,
     };
   }
 }
