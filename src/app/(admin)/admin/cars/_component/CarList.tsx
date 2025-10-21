@@ -76,7 +76,9 @@ export const CarsList = () => {
     fn: updateCarStatusFn,
     data: updateResult,
     error: updateError,
-  } = useFetch(updateCarStatus);
+  } = useFetch(async ({ id, status, featured }: { id: string; status: "AVAILABLE" | "UNAVAILABLE" | "SOLD"; featured: boolean }) =>
+    updateCarStatus(id, { status, featured })
+  );
 
   // Initial fetch and refetch on search changes
   useEffect(() => {
@@ -128,7 +130,7 @@ export const CarsList = () => {
 
   // Handle toggle featured status
   const handleToggleFeatured = async (car: SerializedCar) => {
-    await updateCarStatusFn(car.id, { status: car.status, featured: !car.featured });
+    await updateCarStatusFn({ id: car.id, status: car.status, featured: !car.featured });
   };
 
   // Handle status change
@@ -136,7 +138,7 @@ export const CarsList = () => {
     car: SerializedCar,
     newStatus: "AVAILABLE" | "UNAVAILABLE" | "SOLD"
   ) => {
-    await updateCarStatusFn(car.id, { status: newStatus, featured: car.featured });
+    await updateCarStatusFn({ id: car.id, status: newStatus, featured: car.featured });
   };
 
   // Get status badge color

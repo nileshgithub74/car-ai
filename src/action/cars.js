@@ -34,8 +34,8 @@ export async function processCarImageWithAI(file) {
     // Create image part for the model
     const imagePart = {
       inlineData: {
-        data: base64Image,
-        mimeType: file.type,
+        data: base64Image
+        // mimeType: file.type,
       },
     };
 
@@ -143,7 +143,7 @@ export async function addCar({ carData, images }) {
     const folderPath = `cars/${carId}`;
 
     // Initialize Supabase client for server-side operations
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const supabase = createClient(cookieStore);
 
     // Upload all images to Supabase storage
@@ -175,7 +175,9 @@ export async function addCar({ carData, images }) {
         .from("car-images")
         .upload(filePath, imageBuffer, {
           contentType: `image/${fileExtension}`,
+          
         });
+        console.log(data);
 
       if (error) {
         console.error("Error uploading image:", error);
@@ -218,10 +220,13 @@ export async function addCar({ carData, images }) {
 
     return {
       success: true,
+      car,
     };
   } catch (error) {
     throw new Error("Error adding car:" + error.message);
   }
+
+  
 }
 
 // Fetch all cars with simple search

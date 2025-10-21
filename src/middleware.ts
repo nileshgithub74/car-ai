@@ -22,7 +22,7 @@ const handler = hasClerkEnv
 
       return NextResponse.next();
     })
-  : ((req: any) => NextResponse.next());
+  : (() => NextResponse.next());
 
 export default handler;
 
