@@ -6,27 +6,27 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Minimal cookie interface compatible with Next cookies helper
 type CookieStore = {
-  get(name: string): { name: string; value: string } | undefined;
-  set(name: string, value: string, options?: Record<string, unknown>): void;
+  get(name: string): Promise<{ name: string; value: string } | undefined> | { name: string; value: string } | undefined;
+  set(name: string, value: string, options?: Record<string, unknown>): void | Promise<void>;
 };
 
 export const createClient = (cookieStore: CookieStore) => {
   return createServerClient(supabaseUrl!, supabaseKey!, {
     cookies: {
-      get(name: string) {
-        const value = cookieStore.get(name)?.value;
-        return value ?? null;
+      async get(name: string) {
+        const cookie = await cookieStore.get(name);
+        return cookie?.value ?? null;
       },
-      set(name: string, value: string, options?: Parameters<typeof cookieStore.set>[2]) {
+      async set(name: string, value: string, options?: Parameters<typeof cookieStore.set>[2]) {
         try {
-          cookieStore.set(name, value, options);
+          await cookieStore.set(name, value, options);
         } catch {
           // Ignore if called from a Server Component
         }
       },
-      remove(name: string, options?: Parameters<typeof cookieStore.set>[2]) {
+      async remove(name: string, options?: Parameters<typeof cookieStore.set>[2]) {
         try {
-          cookieStore.set(name, "", { ...(options || {}), maxAge: 0 });
+          await cookieStore.set(name, "", { ...(options || {}), maxAge: 0 });
         } catch {
           // Ignore if called from a Server Component
         }

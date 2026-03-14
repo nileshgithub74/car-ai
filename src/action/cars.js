@@ -26,7 +26,7 @@ export async function processCarImageWithAI(file) {
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Convert image file to base64
     const base64Image = await fileToBase64(file);
@@ -34,8 +34,8 @@ export async function processCarImageWithAI(file) {
     // Create image part for the model
     const imagePart = {
       inlineData: {
-        data: base64Image
-        // mimeType: file.type,
+        data: base64Image,
+        mimeType: file.type,
       },
     };
 
@@ -121,7 +121,7 @@ export async function processCarImageWithAI(file) {
       };
     }
   } catch (error) {
-    console.error();
+    console.error("Gemini API error:", error);
     throw new Error("Gemini API error:" + error.message);
   }
 }
@@ -143,7 +143,7 @@ export async function addCar({ carData, images }) {
     const folderPath = `cars/${carId}`;
 
     // Initialize Supabase client for server-side operations
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     // Upload all images to Supabase storage
@@ -175,13 +175,18 @@ export async function addCar({ carData, images }) {
         .from("car-images")
         .upload(filePath, imageBuffer, {
           contentType: `image/${fileExtension}`,
-          
+          upsert: true,
+          cacheControl: '3600'
         });
-        console.log(data);
+        
+        console.log("Upload result:", data);
 
       if (error) {
         console.error("Error uploading image:", error);
-        throw new Error(`Failed to upload image: ${error.message}`);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        console.error("File path:", filePath);
+        console.error("Bucket:", "car-images");
+        throw new Error(`Failed to upload image: ${error.message || JSON.stringify(error)}`);
       }
 
       // Get the public URL for the uploaded file
@@ -291,7 +296,7 @@ export async function deleteCar(id) {
 
     // Delete the images from Supabase storage
     try {
-      const cookieStore = cookies();
+      const cookieStore = await cookies();
       const supabase = createClient(cookieStore);
 
       // Extract file paths from image URLs
